@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>Pedir — Frango Dourado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/pedido.css"/>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="pd-header">
+  <div class="pd-inner">
+    <a href="index.html" class="pd-brand">
+      <div class="pd-logo">
+        <svg viewBox="0 0 60 50">
+          <defs>
+            <linearGradient id="frangoGradPed" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#FFD200"/>
+              <stop offset="60%" stop-color="#FFB800"/>
+              <stop offset="100%" stop-color="#E30613"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="30" cy="28" rx="16" ry="14" fill="url(#frangoGradPed)"/>
+          <circle cx="30" cy="14" r="8" fill="url(#frangoGradPed)"/>
+          <path d="M24 8 L26 4 L28 8 L30 3 L32 8 L34 4 L36 8" stroke="#E30613" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M36 14 L42 15 L36 17 Z" fill="#E30613"/>
+          <circle cx="32" cy="13" r="1.2" fill="#2A1408"/>
+        </svg>
+      </div>
+      <div class="pd-brand-text">
+        <b>FRANGO <span>DOURADO</span></b>
+        <small>PEDIR AGORA</small>
+      </div>
+    </a>
+
+    <div class="pd-header-actions">
+      <button class="pd-cart-btn" id="pdCartBtn">
+        🛒 <span class="pd-cart-badge" id="pdCartBadge">0</span>
+      </button>
+      <a href="index.html" class="pd-voltar">← Voltar</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MAIN ============ -->
+<main class="pd-main">
+
+  <div class="pd-titulo">
+    <h1>O que vai pedir hoje?</h1>
+    <p>Toque nos itens para adicionar ao carrinho 🛒</p>
+  </div>
+
+  <!-- CATEGORIA: PRATOS -->
+  <section class="pd-section">
+    <h2>🍗 Pratos</h2>
+    <div class="pd-menu-grid" id="pdCatPratos"></div>
+  </section>
+
+  <!-- CATEGORIA: ACOMPANHAMENTOS -->
+  <section class="pd-section">
+    <h2>🍟 Acompanhamentos</h2>
+    <div class="pd-menu-grid" id="pdCatAcompanhamentos"></div>
+  </section>
+
+  <!-- CATEGORIA: REFRIGERANTES -->
+  <section class="pd-section">
+    <h2>🥤 Refrigerantes</h2>
+    <div class="pd-menu-grid" id="pdCatRefrigerantes"></div>
+  </section>
+
+</main>
+
+<!-- ============ CARRINHO (gaveta) ============ -->
+<div class="pd-cart-overlay" id="pdCartOverlay"></div>
+<aside class="pd-cart-drawer" id="pdCartDrawer">
+  <div class="pd-cart-head">
+    <h2>🛒 O seu carrinho</h2>
+    <button class="pd-cart-close" id="pdCartClose">✕</button>
+  </div>
+
+  <div class="pd-cart-body" id="pdCartBody">
+    <p class="pd-cart-empty">O carrinho está vazio.</p>
+  </div>
+
+  <div class="pd-cart-foot" id="pdCartFoot">
+    <div class="pd-cart-total">
+      <span>Subtotal</span>
+      <b id="pdCartTotal">0 MT</b>
+    </div>
+    <button class="pd-cart-checkout" id="pdCartCheckout" disabled>
+      CONTINUAR →
+    </button>
+  </div>
+</aside>
+
+<!-- ============ STEP: ENTREGA + DADOS ============ -->
+<section class="pd-section" id="pdSectionDados" hidden style="max-width:760px;margin:20px auto 40px;padding:22px">
+  <h2>Como quer receber?</h2>
+
+  <div class="pd-modos">
+    <label class="pd-modo">
+      <input type="radio" name="pd-modo" value="entrega" checked/>
+      <div class="pd-modo-inner">
+        <span class="pd-modo-icon">🛵</span>
+        <b>ENTREGA</b>
+        <small>Em casa</small>
+      </div>
+    </label>
+    <label class="pd-modo">
+      <input type="radio" name="pd-modo" value="retirada"/>
+      <div class="pd-modo-inner">
+        <span class="pd-modo-icon">🏪</span>
+        <b>RETIRAR</b>
+        <small>No restaurante</small>
+      </div>
+    </label>
+  </div>
+
+  <div id="pdEntregaFields">
+    <div class="pd-field">
+      <label>Zona de entrega</label>
+      <select id="pdZona"></select>
+    </div>
+
+    <div class="pd-field">
+      <label>Endereço / Localização</label>
+      <input type="text" id="pdEndereco" placeholder="Ex.: Bairro, rua, número"/>
+    </div>
+    <div class="pd-field">
+      <label>Ponto de Referência</label>
+      <input type="text" id="pdReferencia" placeholder="Ex.: Próximo ao mercado"/>
+    </div>
+    <button type="button" class="pd-btn-outline" id="pdUseLocation">📍 Usar a minha localização</button>
+  </div>
+
+  <h2 style="margin-top:22px">Os seus dados</h2>
+  <div class="pd-field">
+    <label>Nome completo</label>
+    <input type="text" id="pdNomeCliente" placeholder="O seu nome"/>
+  </div>
+  <div class="pd-field">
+    <label>Telefone</label>
+    <input type="tel" id="pdTelefone" placeholder="Ex.: 84XXXXXXX"/>
+  </div>
+  <div class="pd-field">
+    <label>Observações (opcional)</label>
+    <textarea id="pdObs" rows="2" placeholder="Ex.: Sem piri-piri, mais arroz"></textarea>
+  </div>
+
+  <button class="pd-btn-final" id="pdVerResumo" disabled>VER RESUMO →</button>
+</section>
+
+<!-- ============ MODAL RESUMO ============ -->
+<div class="pd-modal" id="pdModalResumo">
+  <div class="pd-modal-box">
+    <div class="pd-modal-head">
+      <h2>📋 Resumo do pedido</h2>
+      <button class="pd-modal-close" id="pdModalResumoClose">✕</button>
+    </div>
+    <div class="pd-modal-body" id="pdResumoBody"></div>
+    <div class="pd-modal-foot">
+      <button class="pd-modal-btn pd-modal-cancelar" id="pdResumoEditar">← EDITAR</button>
+      <button class="pd-modal-btn pd-modal-ok" id="pdResumoEnviar">📱 ENVIAR WHATSAPP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL AVISO FINAL ============ -->
+<div class="pd-modal" id="pdModalAviso">
+  <div class="pd-modal-box">
+    <div class="pd-modal-icon">⏰</div>
+    <h2 class="pd-modal-title">ATENÇÃO — TEMPO LIMITE</h2>
+    <p class="pd-modal-text">
+      Após clicares em <b>ENTENDI</b>, tens até <b>40 MINUTOS</b> para o teu pedido ser entregue ou levantado.
+    </p>
+
+    <div class="pd-modal-estacao">
+      <div class="pd-modal-estacao-icon">🍗</div>
+      <div>
+        <b>Frango Dourado</b>
+        <small>Av. Marginal, Quelimane</small>
+      </div>
+    </div>
+
+    <p class="pd-modal-text pd-modal-destaque">
+      Apresenta este pedido no restaurante.
+    </p>
+
+    <div class="pd-modal-botoes">
+      <button class="pd-modal-btn pd-modal-cancelar" id="pdModalAvisoCancelar">Cancelar</button>
+      <button class="pd-modal-btn pd-modal-ok" id="pdModalAvisoOk">ENTENDI ✓</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/pedido.js"></script>
+</body>
+</html>

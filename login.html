@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Login — Frango Dourado</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/login.css"/>
+</head>
+<body>
+<div class="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 60 50">
+        <defs>
+          <linearGradient id="lgF" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFD200"/>
+            <stop offset="60%" stop-color="#FFB800"/>
+            <stop offset="100%" stop-color="#E30613"/>
+          </linearGradient>
+        </defs>
+        <ellipse cx="30" cy="28" rx="16" ry="14" fill="url(#lgF)"/>
+        <circle cx="30" cy="14" r="8" fill="url(#lgF)"/>
+        <path d="M24 8 L26 4 L28 8 L30 3 L32 8 L34 4 L36 8" stroke="#E30613" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M36 14 L42 15 L36 17 Z" fill="#E30613"/>
+        <circle cx="32" cy="13" r="1.2" fill="#2A1408"/>
+      </svg>
+    </div>
+    <h1><span class="dourado">FRANGO</span> <span class="vermelho">DOURADO</span></h1>
+    <p class="login-sub">Painel Administrativo · Quelimane</p>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="field">
+        <label>Utilizador</label>
+        <input type="text" id="loginUser" placeholder="frango" autofocus/>
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="loginPass" placeholder="••••••••"/>
+      </div>
+      <button type="submit" class="btn-login">ENTRAR</button>
+      <p class="login-error" id="loginError"></p>
+    </form>
+
+    <a href="index.html" class="back-link">← Voltar ao site</a>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>
