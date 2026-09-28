@@ -29,7 +29,9 @@ body{
   color:var(--branco);
   line-height:1.55;
   min-height:100vh;
+  min-height:100dvh;           /* altura real do ecrã no mobile */
   padding-bottom:40px;
+  overflow-x:hidden;
 }
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
@@ -605,29 +607,78 @@ input,select,textarea{font-family:inherit}
   }
 }
 /* ============================================================
-   BOTÃO FIXO EM BAIXO (só no mobile)
+   FIX MOBILE — CARRINHO
    ============================================================ */
-@media (max-width: 600px){
-  #pdSectionDados:not([hidden]) .pd-btn-final{
-    position: sticky;
-    bottom: 12px;
-    z-index: 50;
-    box-shadow: 0 -8px 24px rgba(0,0,0,.5),
-                0 8px 24px var(--dourado-brilho);
+
+@media (max-width: 700px){
+  
+  /* ============ HEADER ============ */
+  .pd-header{padding:10px 0}
+  .pd-inner{padding:10px 16px}
+  
+  /* ============ CARRINHO (DRAWER) ============ */
+  .pd-cart-drawer{
+    width:100vw !important;
+    max-width:100vw !important;
+    height:100vh !important;
+    height:100dvh !important;   /* altura real do ecrã no mobile */
+    display:flex;
+    flex-direction:column;
   }
-}
-@media (max-width: 600px){
-  .pd-modal-box-aviso{
-    max-width: 100% !important;
-    padding: 26px 20px 100px !important;
+  
+  .pd-cart-head{
+    flex-shrink:0;
+    padding:14px 16px !important;
   }
-  .pd-modal-box-aviso .pd-modal-estacao{
-    padding: 12px !important;
+  
+  .pd-cart-head h2{
+    font-size:16px !important;
   }
-  .pd-modal-box-aviso .pd-modal-icon{
-    font-size: 48px !important;
+  
+  /* Body do carrinho — scroll interno */
+  .pd-cart-body{
+    flex:1 1 auto;
+    overflow-y:auto;
+    padding:12px 16px !important;
+    min-height:0;
   }
-  .pd-modal-box-aviso .pd-modal-title{
-    font-size: 18px !important;
+  
+  .pd-cart-empty{
+    padding:40px 20px !important;
+  }
+  
+  .pd-cart-item{
+    padding:10px !important;
+    margin-bottom:8px !important;
+  }
+  
+  /* ============ FOOTER DO CARRINHO (subtotal + botão) ============ */
+  .pd-cart-foot{
+    flex-shrink:0;
+    padding:14px 16px !important;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+    background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.85)) !important;
+    border-top:1px solid rgba(255,184,0,.25) !important;
+    box-shadow:0 -8px 24px rgba(0,0,0,.5);
+    position:sticky;
+    bottom:0;
+    z-index:5;
+  }
+  
+  .pd-cart-total{
+    margin-bottom:10px !important;
+  }
+  
+  .pd-cart-total b{
+    font-size:22px !important;
+  }
+  
+  .pd-cart-checkout{
+    width:100%;
+    padding:16px !important;
+    font-size:15px !important;
+    font-weight:900 !important;
+    border-radius:12px !important;
+    letter-spacing:1px;
   }
 }
