@@ -495,3 +495,139 @@ input,select,textarea{font-family:inherit}
   .pd-modal-foot,.pd-modal-botoes{flex-direction:column-reverse}
   .pd-cart-drawer{width:100%;max-width:100%}
 }
+/* ============================================================
+   FIX MOBILE — BOTÕES VISÍVEIS E CLICÁVEIS
+   ============================================================ */
+
+/* 1) Botão principal "VER RESUMO" — sempre visível no fundo */
+.pd-btn-final{
+  margin-bottom: 20px;
+}
+
+/* 2) Secção dos dados com padding extra em baixo */
+#pdSectionDados{
+  padding-bottom: 40px !important;
+  margin-bottom: 80px !important;
+}
+
+/* 3) Modais no mobile — centralizar e caber no ecrã */
+@media (max-width: 600px){
+  
+  /* Modal resumo — botões sempre acessíveis */
+  .pd-modal-box{
+    max-height: 90vh !important;
+    padding: 22px 18px 90px !important;  /* espaço em baixo para os botões */
+    margin: auto !important;
+    position: relative;
+  }
+  
+  /* Body da modal — deixa espaço para os botões */
+  .pd-modal-body{
+    max-height: 55vh !important;
+    overflow-y: auto !important;
+    padding-bottom: 20px !important;
+  }
+  
+  /* Botões da modal — fixos no fundo da modal */
+  .pd-modal-foot,
+  .pd-modal-botoes{
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, transparent, #1A0C05 30%);
+    padding: 16px 0 8px;
+    margin-top: 8px;
+    z-index: 10;
+    flex-direction: column-reverse;
+  }
+  
+  .pd-modal-btn{
+    padding: 16px 14px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Overlay do modal — permitir scroll */
+  .pd-modal{
+    align-items: flex-start !important;
+    padding: 20px 12px 100px !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Botão VER RESUMO */
+  .pd-btn-final{
+    position: relative;
+    margin-bottom: 30px;
+    padding: 18px !important;
+    font-size: 16px !important;
+  }
+  
+  /* Drawer do carrinho — deixar espaço para o botão checkout */
+  .pd-cart-body{
+    padding-bottom: 100px !important;
+  }
+  
+  .pd-cart-foot{
+    padding-bottom: 30px !important;
+  }
+  
+  /* Botão checkout do carrinho */
+  .pd-cart-checkout{
+    padding: 18px !important;
+    font-size: 15px !important;
+  }
+}
+
+/* 4) iPhones com notch — respeita a safe area em baixo */
+@supports (padding: max(0px)){
+  .pd-modal-foot,
+  .pd-modal-botoes,
+  .pd-btn-final,
+  .pd-cart-foot{
+    padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* 5) Landscape mobile (deitado) — botões compactos */
+@media (max-height: 500px) and (orientation: landscape){
+  .pd-modal-box{
+    max-height: 95vh !important;
+    padding: 16px !important;
+  }
+  .pd-modal-icon{
+    font-size: 36px !important;
+    margin-bottom: 6px !important;
+  }
+  .pd-modal-title{
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+  }
+  .pd-modal-body{
+    max-height: 40vh !important;
+  }
+}
+/* ============================================================
+   BOTÃO FIXO EM BAIXO (só no mobile)
+   ============================================================ */
+@media (max-width: 600px){
+  #pdSectionDados:not([hidden]) .pd-btn-final{
+    position: sticky;
+    bottom: 12px;
+    z-index: 50;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.5),
+                0 8px 24px var(--dourado-brilho);
+  }
+}
+@media (max-width: 600px){
+  .pd-modal-box-aviso{
+    max-width: 100% !important;
+    padding: 26px 20px 100px !important;
+  }
+  .pd-modal-box-aviso .pd-modal-estacao{
+    padding: 12px !important;
+  }
+  .pd-modal-box-aviso .pd-modal-icon{
+    font-size: 48px !important;
+  }
+  .pd-modal-box-aviso .pd-modal-title{
+    font-size: 18px !important;
+  }
+}
