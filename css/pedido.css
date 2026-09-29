@@ -682,3 +682,73 @@ input,select,textarea{font-family:inherit}
     letter-spacing:1px;
   }
 }
+/* ============================================================
+   BARRA DE PROGRESSO
+   ============================================================ */
+.pd-progress{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:20px 16px;
+  max-width:600px;
+  margin:0 auto;
+}
+
+.pd-progress-step{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  flex-shrink:0;
+}
+
+.pd-progress-step span{
+  width:32px;height:32px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:14px;
+  background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.15);
+  color:#C9B8A8;
+  transition:.3s;
+}
+
+.pd-progress-step small{
+  font-size:10px;
+  color:#C9B8A8;
+  letter-spacing:.5px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.pd-progress-step.active span{
+  background:linear-gradient(135deg,var(--dourado),var(--vermelho));
+  border-color:transparent;
+  color:#fff;
+  box-shadow:0 0 16px var(--dourado-brilho);
+}
+
+.pd-progress-step.active small{
+  color:var(--dourado);
+}
+
+.pd-progress-step.completed span{
+  background:var(--ok);
+  border-color:transparent;
+  color:#fff;
+}
+
+.pd-progress-step.completed small{color:var(--ok)}
+
+.pd-progress-line{
+  width:40px;height:2px;
+  background:rgba(255,255,255,.1);
+  margin-bottom:20px;
+}
+
+@media (max-width:480px){
+  .pd-progress-line{width:24px}
+  .pd-progress-step span{width:28px;height:28px;font-size:12px}
+  .pd-progress-step small{font-size:9px}
+}

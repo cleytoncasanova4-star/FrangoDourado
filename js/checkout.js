@@ -1,5 +1,6 @@
 /* ============================================================
-   FRANGO DOURADO — PEDIDO (com carrinho)
+   FRANGO DOURADO — CHECKOUT
+   Página dedicada: entrega + dados do cliente
    ============================================================ */
 
 const Store = {
@@ -14,7 +15,6 @@ const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const fmtMT = v => `${Number(v||0)} MT`;
 
-/* Supabase */
 let supabaseClient = null;
 try{
   if(window.supabase && CONFIG.supabase && CONFIG.supabase.url.includes('supabase.co')){
@@ -23,13 +23,13 @@ try{
   }
 }catch(err){ console.error('❌', err); }
 
-/* Estado */
+/* Estado (vem do carrinho gravado) */
 const state = {
-  carrinho: [],     // [{id, nome, preco, quantidade, icon}]
+  carrinho: Store.get('frango_carrinho', []),
   modo: 'entrega',
   zona: 0,
-  endereco: '',
-  referencia: '',
+  endereco: Store.get('frango_entrega', {}).endereco || '',
+  referencia: Store.get('frango_entrega', {}).referencia || '',
   nome: '',
   telefone: '',
   observacoes: ''
@@ -42,161 +42,103 @@ function arredondar(v){
 }
 
 /* ============================================================
-   RENDERIZA MENU
+   INICIALIZAÇÃO
    ============================================================ */
-async function renderMenu(){
-  const produtos = getProdutos();
+document.addEventListener('DOMContentLoaded', () => {
+  // Se não tem carrinho → volta ao menu
+  if(!state.carrinho.length){
+    alert('O carrinho está vazio. Volte ao menu.');
+    window.location.href = 'pedido.html';
+    return;
+  }
 
-  const porCategoria = cat => produtos.filter(p => p.categoria === cat);
-  const renderGrid = cat => porCategoria(cat).map(p => `
-    <div class="pd-menu-item ${p.disponivel ? '' : 'unavailable'}" data-id="${p.id}">
-      <div class="pd-mi-icon">${p.icon}</div>
-      <div class="pd-mi-info">
-        <b>${p.nome}</b>
-        <small>${p.desc || ''}</small>
-        <span class="pd-mi-preco">${p.preco} MT</span>
-      </div>
-      <button class="pd-mi-btn" data-add="${p.id}" ${p.disponivel ? '' : 'disabled'}>+</button>
-    </div>
-  `).join('');
-
-  if($('#pdCatPratos'))          $('#pdCatPratos').innerHTML = renderGrid('pratos');
-  if($('#pdCatAcompanhamentos')) $('#pdCatAcompanhamentos').innerHTML = renderGrid('acompanhamentos');
-  if($('#pdCatRefrigerantes'))   $('#pdCatRefrigerantes').innerHTML = renderGrid('refrigerantes');
-
-  // Liga os botões +
-  $$('[data-add]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      adicionarAoCarrinho(btn.dataset.add);
-    });
-  });
-}
+  renderCarrinho();
+  renderModos();
+  renderZonas();
+  restaurarCampos();
+  validarBotao();
+});
 
 /* ============================================================
    CARRINHO
    ============================================================ */
-function adicionarAoCarrinho(id){
-  const p = getProdutos().find(x => x.id === id);
-  if(!p || !p.disponivel) return;
-
-  const item = state.carrinho.find(x => x.id === id);
-  if(item){
-    item.quantidade++;
-  } else {
-    state.carrinho.push({ id: p.id, nome: p.nome, preco: p.preco, icon: p.icon, quantidade: 1 });
-  }
-  atualizarCarrinho();
-
-  // Animação feedback
-  const badge = $('#pdCartBadge');
-  if(badge){
-    badge.style.transform = 'scale(1.4)';
-    setTimeout(() => badge.style.transform = 'scale(1)', 200);
-  }
+function subtotal(){
+  return state.carrinho.reduce((s, x) => s + (x.preco * x.quantidade), 0);
 }
-
-function removerDoCarrinho(id){
-  state.carrinho = state.carrinho.filter(x => x.id !== id);
-  atualizarCarrinho();
-}
-
-function alterarQuantidade(id, delta){
-  const item = state.carrinho.find(x => x.id === id);
-  if(!item) return;
-  item.quantidade += delta;
-  if(item.quantidade <= 0){
-    removerDoCarrinho(id);
-    return;
-  }
-  atualizarCarrinho();
-}
-
 function totalItens(){
   return state.carrinho.reduce((s, x) => s + x.quantidade, 0);
 }
 
-function subtotal(){
-  return state.carrinho.reduce((s, x) => s + (x.preco * x.quantidade), 0);
-}
-
-function atualizarCarrinho(){
-  // Badge
-  const total = totalItens();
+function renderCarrinho(){
   const badge = $('#pdCartBadge');
-  if(badge) badge.textContent = total;
+  if(badge) badge.textContent = totalItens();
 
-  // Corpo do carrinho
   const body = $('#pdCartBody');
   if(!body) return;
 
   if(!state.carrinho.length){
-    body.innerHTML = `<p class="pd-cart-empty">🛒 O carrinho está vazio.<br><small style="font-size:12px;opacity:.7">Toque no + dos itens para adicionar</small></p>`;
-  } else {
-    body.innerHTML = state.carrinho.map(item => `
-      <div class="pd-cart-item">
-        <div class="pd-cart-item-icon">${item.icon || '🍗'}</div>
-        <div class="pd-cart-item-info">
-          <b>${item.nome}</b>
-          <small>${item.preco} MT × ${item.quantidade} = ${item.preco * item.quantidade} MT</small>
-        </div>
-        <div class="pd-cart-item-qty">
-          <button data-qty-menos="${item.id}">−</button>
-          <span>${item.quantidade}</span>
-          <button data-qty-mais="${item.id}">+</button>
-        </div>
-        <button class="pd-cart-item-remove" data-remove="${item.id}">🗑️</button>
-      </div>
-    `).join('');
-
-    // Eventos
-    body.querySelectorAll('[data-qty-mais]').forEach(b => b.addEventListener('click', () => alterarQuantidade(b.dataset.qtyMais, 1)));
-    body.querySelectorAll('[data-qty-menos]').forEach(b => b.addEventListener('click', () => alterarQuantidade(b.dataset.qtyMenos, -1)));
-    body.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removerDoCarrinho(b.dataset.remove)));
+    body.innerHTML = `<p class="pd-cart-empty">Carrinho vazio.</p>`;
+    return;
   }
 
-  // Total
+  body.innerHTML = state.carrinho.map(item => `
+    <div class="pd-cart-item">
+      <div class="pd-cart-item-icon">${item.icon || '🍗'}</div>
+      <div class="pd-cart-item-info">
+        <b>${item.nome}</b>
+        <small>${item.preco} MT × ${item.quantidade} = ${item.preco * item.quantidade} MT</small>
+      </div>
+      <div class="pd-cart-item-qty">
+        <button data-qty-menos="${item.id}">−</button>
+        <span>${item.quantidade}</span>
+        <button data-qty-mais="${item.id}">+</button>
+      </div>
+      <button class="pd-cart-item-remove" data-remove="${item.id}">🗑️</button>
+    </div>
+  `).join('');
+
+  body.querySelectorAll('[data-qty-mais]').forEach(b => b.addEventListener('click', () => alterarQtd(b.dataset.qtyMais, 1)));
+  body.querySelectorAll('[data-qty-menos]').forEach(b => b.addEventListener('click', () => alterarQtd(b.dataset.qtyMenos, -1)));
+  body.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removerItem(b.dataset.remove)));
+
   const subEl = $('#pdCartTotal');
   if(subEl) subEl.textContent = fmtMT(subtotal());
-
-  // Botão checkout
-  const checkout = $('#pdCartCheckout');
-  if(checkout) checkout.disabled = !state.carrinho.length;
-
-  // Se já estamos na secção de dados, atualiza a validação
-  validarBotaoFinal();
 }
 
-/* ============================================================
-   DRAWER DO CARRINHO
-   ============================================================ */
-function abrirCarrinho(){
-  $('#pdCartDrawer')?.classList.add('open');
-  $('#pdCartOverlay')?.classList.add('active');
-  document.body.style.overflow = 'hidden';
+function alterarQtd(id, delta){
+  const item = state.carrinho.find(x => x.id === id);
+  if(!item) return;
+  item.quantidade += delta;
+  if(item.quantidade <= 0){
+    removerItem(id);
+    return;
+  }
+  guardar();
+  renderCarrinho();
+  validarBotao();
 }
-function fecharCarrinho(){
-  $('#pdCartDrawer')?.classList.remove('open');
-  $('#pdCartOverlay')?.classList.remove('active');
-  document.body.style.overflow = '';
+
+function removerItem(id){
+  state.carrinho = state.carrinho.filter(x => x.id !== id);
+  guardar();
+  renderCarrinho();
+  validarBotao();
+
+  // Se ficou vazio → volta ao menu
+  if(!state.carrinho.length){
+    setTimeout(() => {
+      alert('Carrinho vazio. Volte ao menu.');
+      window.location.href = 'pedido.html';
+    }, 300);
+  }
 }
 
-$('#pdCartBtn')?.addEventListener('click', abrirCarrinho);
-$('#pdCartClose')?.addEventListener('click', fecharCarrinho);
-$('#pdCartOverlay')?.addEventListener('click', fecharCarrinho);
-
-$('#pdCartCheckout')?.addEventListener('click', () => {
-  if(!state.carrinho.length) return;
-
-  // Guarda o carrinho para a página de checkout
+function guardar(){
   Store.set('frango_carrinho', state.carrinho);
-
-  // Vai para o checkout
-  window.location.href = 'checkout.html';
-});
+}
 
 /* ============================================================
-   MODOS DE ENTREGA
+   MODOS
    ============================================================ */
 function renderModos(){
   $$('input[name="pd-modo"]').forEach(r => {
@@ -204,7 +146,8 @@ function renderModos(){
     r.onchange = () => {
       state.modo = r.value;
       $('#pdEntregaFields').hidden = state.modo !== 'entrega';
-      validarBotaoFinal();
+      validarBotao();
+      calcularTaxaAtual();
     };
   });
   $('#pdEntregaFields').hidden = state.modo !== 'entrega';
@@ -220,20 +163,32 @@ function renderZonas(){
   ).join('');
 
   state.zona = 0;
-  sel.onchange = () => { state.zona = Number(sel.value); };
+  sel.onchange = () => {
+    state.zona = Number(sel.value);
+    calcularTaxaAtual();
+  };
 }
 
-/* ============================================================
-   TAXA DE ENTREGA
-   ============================================================ */
 function calcularTaxa(){
   const cfg = getConfig();
   if(state.modo === 'retirada') return cfg.entrega.levantamento || 0;
   const z = cfg.entrega.zonas[state.zona];
   if(!z) return 0;
-  // Frete grátis acima de X
   if(cfg.entrega.gratisAcimaDe && subtotal() >= cfg.entrega.gratisAcimaDe) return 0;
   return z.valor;
+}
+
+function calcularTaxaAtual(){
+  // Só recalcula — o total é mostrado no resumo
+  validarBotao();
+}
+
+/* ============================================================
+   RESTAURAR CAMPOS
+   ============================================================ */
+function restaurarCampos(){
+  if($('#pdEndereco')) $('#pdEndereco').value = state.endereco;
+  if($('#pdReferencia')) $('#pdReferencia').value = state.referencia;
 }
 
 /* ============================================================
@@ -247,14 +202,14 @@ $('#pdUseLocation')?.addEventListener('click', () => {
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude, longitude } = pos.coords;
     $('#pdEndereco').value = `Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)}`;
-    validarBotaoFinal();
+    validarBotao();
   }, () => alert('Não foi possível obter. Escreva manualmente.'));
 });
 
 /* ============================================================
    VALIDAÇÃO
    ============================================================ */
-function validarBotaoFinal(){
+function validarBotao(){
   const btn = $('#pdVerResumo');
   if(!btn) return;
 
@@ -277,8 +232,27 @@ function validarBotaoFinal(){
 
 document.addEventListener('input', e => {
   if(['pdNomeCliente','pdTelefone','pdEndereco','pdReferencia','pdObs'].includes(e.target.id)){
-    validarBotaoFinal();
+    validarBotao();
   }
+});
+
+/* ============================================================
+   DRAWER DO CARRINHO
+   ============================================================ */
+$('#pdCartBtn')?.addEventListener('click', () => {
+  $('#pdCartDrawer')?.classList.add('open');
+  $('#pdCartOverlay')?.classList.add('active');
+  document.body.style.overflow = 'hidden';
+});
+$('#pdCartClose')?.addEventListener('click', () => {
+  $('#pdCartDrawer')?.classList.remove('open');
+  $('#pdCartOverlay')?.classList.remove('active');
+  document.body.style.overflow = '';
+});
+$('#pdCartOverlay')?.addEventListener('click', () => {
+  $('#pdCartDrawer')?.classList.remove('open');
+  $('#pdCartOverlay')?.classList.remove('active');
+  document.body.style.overflow = '';
 });
 
 /* ============================================================
@@ -290,6 +264,9 @@ $('#pdVerResumo')?.addEventListener('click', () => {
   state.nome = $('#pdNomeCliente')?.value.trim() || '';
   state.telefone = $('#pdTelefone')?.value.trim() || '';
   state.observacoes = $('#pdObs')?.value.trim() || '';
+
+  // Guarda para próxima visita
+  Store.set('frango_entrega', { endereco: state.endereco, referencia: state.referencia });
 
   if(!state.carrinho.length || !state.nome || !state.telefone) return;
 
@@ -313,8 +290,7 @@ function renderResumo(){
   let entregaHTML = '';
   if(state.modo === 'retirada'){
     entregaHTML = `
-      <div class="pd-resumo-item"><span>Modo</span><b>🏪 Retirar</b></div>
-      <div class="pd-resumo-item"><span>Taxa</span><b>—</b></div>
+      <div class="pd-resumo-item"><span>Modo</span><b>🏪 Retirar no restaurante</b></div>
     `;
   } else {
     const zonaNome = cfg.entrega.zonas[state.zona]?.nome || '—';
@@ -323,7 +299,6 @@ function renderResumo(){
       <div class="pd-resumo-item"><span>Zona</span><b>${zonaNome}</b></div>
       <div class="pd-resumo-item"><span>Endereço</span><b>${state.endereco}</b></div>
       ${state.referencia ? `<div class="pd-resumo-item"><span>Referência</span><b>${state.referencia}</b></div>` : ''}
-      <div class="pd-resumo-item"><span>Taxa de entrega</span><b>${taxa > 0 ? taxa + ' MT' : 'GRÁTIS 🎉'}</b></div>
     `;
   }
 
@@ -346,14 +321,13 @@ function renderResumo(){
   `;
 }
 
-/* Fechar modal resumo */
 $('#pdModalResumoClose')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
 $('#pdResumoEditar')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
 $('#pdModalResumo')?.addEventListener('click', e => {
   if(e.target.id === 'pdModalResumo') $('#pdModalResumo').classList.remove('active');
 });
 
-/* Enviar → abre modal de aviso */
+/* Enviar → abre modal aviso */
 $('#pdResumoEnviar')?.addEventListener('click', () => {
   $('#pdModalResumo').classList.remove('active');
   $('#pdModalAviso').classList.add('active');
@@ -372,7 +346,7 @@ $('#pdModalAviso')?.addEventListener('click', e => {
 });
 
 /* ============================================================
-   ENVIAR DE VERDADE
+   ENVIAR WHATSAPP
    ============================================================ */
 async function enviarWhatsAppFinal(){
   const cfg = getConfig();
@@ -383,7 +357,6 @@ async function enviarWhatsAppFinal(){
     ? (cfg.entrega.zonas[state.zona]?.nome || '—')
     : 'Retirada';
 
-  // Itens formatados
   const itensTexto = state.carrinho.map(item =>
     `• ${item.quantidade}x ${item.nome} — ${item.preco * item.quantidade} MT`
   ).join('\n');
@@ -407,12 +380,11 @@ async function enviarWhatsAppFinal(){
 
   if(supabaseClient){
     supabaseClient.from('pedidos_frango').insert([pedido]).then(({ error }) => {
-      if(error) console.error('❌ Supabase:', error);
+      if(error) console.error('❌', error);
       else console.log('✅ Pedido gravado');
     });
   }
 
-  // WhatsApp
   const linhas = [
     cfg.mensagemWhatsApp || 'Olá, Frango Dourado!',
     '',
@@ -439,13 +411,7 @@ async function enviarWhatsAppFinal(){
   ].filter(Boolean).join('\n');
 
   window.open(`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent(linhas)}`, '_blank');
-}
 
-/* ============================================================
-   INIT
-   ============================================================ */
-document.addEventListener('DOMContentLoaded', () => {
-  renderMenu();
-  atualizarCarrinho();
-  validarBotaoFinal();
-});
+  // Limpa o carrinho
+  Store.set('frango_carrinho', []);
+}
