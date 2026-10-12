@@ -1,5 +1,5 @@
 /* ============================================================
-   FRANGO DOURADO — ADMIN
+   FRANGO DOURADO — ADMIN (versão final)
    ============================================================ */
 
 const SESSION_KEY = 'frango_admin_session';
@@ -15,71 +15,127 @@ const Store = {
   set(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
 };
 
-function ensureData(){
-  if(!localStorage.getItem('frango_config'))   Store.set('frango_config', CONFIG);
-  if(!localStorage.getItem('frango_produtos')) Store.set('frango_produtos', PRODUTOS_PADRAO);
-  if(!localStorage.getItem('frango_pedidos'))  Store.set('frango_pedidos', []);
-}
-ensureData();
-
+/* ============ SUPABASE ============ */
 let supabaseClient = null;
 try{
-  if(window.supabase && CONFIG.supabase && CONFIG.supabase.url.includes('supabase.co')){
+  if(!window.supabase){
+    console.warn('⚠️ CDN Supabase não carregou');
+  } else if(!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.key){
+    console.warn('⚠️ CONFIG.supabase vazio');
+  } else {
     supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.key);
     console.log('✅ Admin ligado ao Supabase');
   }
-}catch(err){ console.error('❌', err); }
+}catch(err){ console.error('❌ Erro Supabase:', err); }
 
 let filtroAtual = 'todos';
 
 /* ============================================================
-   CARREGAR DO SUPABASE
+   CARREGAR PRODUTOS
    ============================================================ */
 async function carregarProdutos(){
-  if(!supabaseClient) return;
+  if(!supabaseClient){
+    console.warn('⚠️ Sem Supabase, usando cache local');
+    return Store.get('frango_produtos', PRODUTOS_PADRAO);
+  }
   try{
-    const { data, error } = await supabaseClient.from('frango_produtos_config').select('*').order('id');
+    const { data, error } = await supabaseClient
+      .from('frango_produtos_config')
+      .select('*')
+      .order('categoria')
+      .order('nome');
+
     if(error) throw error;
+
     const produtos = (data || []).map(p => ({
-      id: p.id, nome: p.nome, preco: Number(p.preco), categoria: p.categoria,
-      icon: p.icon, desc: p.descricao, disponivel: p.disponivel
+      id: p.id,
+      nome: p.nome,
+      preco: Number(p.preco),
+      categoria: p.categoria,
+      icon: p.icon,
+      desc: p.descricao,
+      disponivel: p.disponivel
     }));
+
     Store.set('frango_produtos', produtos);
-  }catch(err){ console.error('❌ Erro produtos:', err); }
+    console.log('✅ Produtos carregados:', produtos.length);
+    return produtos;
+  }catch(err){
+    console.error('❌ Erro produtos:', err);
+    return Store.get('frango_produtos', PRODUTOS_PADRAO);
+  }
 }
 
+/* ============================================================
+   CARREGAR PEDIDOS
+   ============================================================ */
 async function carregarPedidos(){
-  if(!supabaseClient) return;
+  console.log('🔄 A carregar pedidos do Supabase...');
+
+  if(!supabaseClient){
+    console.warn('⚠️ Sem Supabase — apenas cache local');
+    return Store.get('frango_pedidos', []);
+  }
+
   try{
-    const { data, error } = await supabaseClient.from('pedidos_frango').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabaseClient
+      .from('pedidos_frango')
+      .select('*')
+      .order('created_at', { ascending: false });
+
     if(error) throw error;
+
+    console.log('📦 Pedidos recebidos do Supabase:', data?.length || 0);
+
     const pedidos = (data || []).map(p => ({
-      id: 'F' + p.id, dbId: p.id, data: p.created_at,
-      cliente: p.cliente, telefone: p.telefone,
-      itensTexto: p.itens_texto, totalItens: p.total_itens,
-      subtotal: p.subtotal, modo: p.modo, zona: p.zona,
-      endereco: p.endereco, referencia: p.referencia, observacoes: p.observacoes,
-      entrega: p.taxa, total: p.total, status: p.status
+      id: 'F' + p.id,
+      dbId: p.id,
+      data: p.created_at,
+      cliente: p.cliente,
+      telefone: p.telefone,
+      itensTexto: p.itens_texto,
+      totalItens: p.total_itens,
+      subtotal: p.subtotal,
+      modo: p.modo,
+      zona: p.zona,
+      endereco: p.endereco,
+      referencia: p.referencia,
+      observacoes: p.observacoes,
+      taxa: p.taxa,
+      total: p.total,
+      status: p.status
     }));
+
     Store.set('frango_pedidos', pedidos);
+    console.log('✅ Pedidos carregados:', pedidos.length);
     return pedidos;
-  }catch(err){ console.error('❌', err); return Store.get('frango_pedidos', []); }
+  }catch(err){
+    console.error('❌ Erro ao carregar pedidos:', err);
+    return Store.get('frango_pedidos', []);
+  }
 }
 
-/* INIT */
+/* ============================================================
+   INIT
+   ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
   const app = $('#adminApp');
   if(app) app.style.visibility = 'visible';
 
   const d = new Date();
-  if($('#welcomeDate')){
-    $('#welcomeDate').textContent = d.toLocaleDateString('pt-PT', {weekday:'long', day:'numeric', month:'long'}) + ' · ' + d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
-  }
+  const dataFmt = d.toLocaleDateString('pt-PT', {
+    weekday:'long', day:'numeric', month:'long', year:'numeric'
+  });
+  const horaFmt = d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+  if($('#welcomeDate')) $('#welcomeDate').textContent = `${dataFmt} · ${horaFmt}`;
 
+  // Carrega tudo do Supabase
   await carregarProdutos();
   await carregarPedidos();
+
   renderTudo();
 
+  // Atualiza pedidos a cada 30s
   setInterval(async () => {
     await carregarPedidos();
     renderPendentes();
@@ -87,19 +143,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 30000);
 });
 
+/* ============ LOGOUT ============ */
 $('#logoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem(SESSION_KEY);
   window.location.replace('login.html');
 });
 
-/* RENDER */
+/* ============ RENDER ============ */
 function renderTudo(){
   renderSwitches();
   renderPendentes();
   renderTabela();
 }
 
-/* SWITCHES PRODUTOS */
+/* ============ SWITCHES PRODUTOS ============ */
 function renderSwitches(){
   const lista = Store.get('frango_produtos', PRODUTOS_PADRAO);
   const el = $('#switchList');
@@ -123,24 +180,38 @@ function renderSwitches(){
 
   $$('[data-id]').forEach(chk => {
     chk.addEventListener('change', async () => {
-      const novo = chk.checked;
+      const novoEstado = chk.checked;
+
       if(supabaseClient){
-        const { error } = await supabaseClient.from('frango_produtos_config').update({ disponivel: novo }).eq('id', chk.dataset.id);
-        if(error){ alert('Erro.'); chk.checked = !novo; return; }
+        const { error } = await supabaseClient
+          .from('frango_produtos_config')
+          .update({ disponivel: novoEstado })
+          .eq('id', chk.dataset.id);
+
+        if(error){
+          console.error('❌', error);
+          alert('Erro ao guardar.');
+          chk.checked = !novoEstado;
+          return;
+        }
+        console.log(`✅ Supabase: ${chk.dataset.id} → ${novoEstado ? 'ON' : 'OFF'}`);
       }
+
       const lista = Store.get('frango_produtos', PRODUTOS_PADRAO);
       const p = lista.find(x => x.id === chk.dataset.id);
-      if(p){ p.disponivel = novo; Store.set('frango_produtos', lista); }
+      if(p){ p.disponivel = novoEstado; Store.set('frango_produtos', lista); }
+
       renderSwitches();
     });
   });
 }
 
-/* PENDENTES */
+/* ============ PEDIDOS PENDENTES ============ */
 function renderPendentes(){
   const pedidos = Store.get('frango_pedidos', []);
   const pendentes = pedidos.filter(p => p.status === 'PENDENTE');
-  $('#pendentesCount').textContent = pendentes.length;
+
+  if($('#pendentesCount')) $('#pendentesCount').textContent = pendentes.length;
 
   const container = $('#pendentesList');
   if(!container) return;
@@ -151,11 +222,14 @@ function renderPendentes(){
   }
 
   container.innerHTML = pendentes.map(p => {
-    const itens = p.itensTexto ? p.itensTexto.split('\n').map(l => `<div class="receipt-row"><span>•</span><b>${l.replace('• ', '')}</b></div>`).join('') : '';
+    const itens = p.itensTexto
+      ? p.itensTexto.split('\n').map(l => `<div class="receipt-row"><span>•</span><b>${l.replace('• ', '')}</b></div>`).join('')
+      : '';
+
     return `
       <div class="receipt pending">
         <div class="receipt-head">
-          <span class="receipt-id">${p.id.slice(-6)}</span>
+          <span class="receipt-id">#${p.id.slice(-6)}</span>
           <span class="receipt-date">${new Date(p.data).toLocaleString('pt-PT')}</span>
         </div>
         <div class="receipt-body">
@@ -166,9 +240,9 @@ function renderPendentes(){
           ${p.observacoes ? `<div class="receipt-row"><span>Obs.</span><b>${p.observacoes}</b></div>` : ''}
         </div>
         <div style="padding:12px 16px;border-top:1px dashed rgba(255,255,255,.06);background:rgba(0,0,0,.2)">
-          <div style="font-size:11px;letter-spacing:1px;color:var(--dourado);font-weight:800;margin-bottom:6px">🍗 ITENS (${p.totalItens || 0})</div>
+          <div style="font-size:11px;letter-spacing:1px;color:#FFB800;font-weight:800;margin-bottom:6px">🍗 ITENS (${p.totalItens || 0})</div>
           ${itens}
-          <div class="receipt-row"><span>Taxa</span><b>${p.entrega ? p.entrega + ' MT' : '—'}</b></div>
+          <div class="receipt-row"><span>Taxa</span><b>${p.taxa ? p.taxa + ' MT' : '—'}</b></div>
           <div class="receipt-row total"><span>TOTAL</span><b>${p.total} MT</b></div>
         </div>
         <div class="receipt-foot">
@@ -187,26 +261,26 @@ function renderPendentes(){
     atualizarStatus(b.dataset.entregue, 'ENTREGUE');
   }));
   $$('[data-cancelar]').forEach(b => b.addEventListener('click', () => {
-    if(!confirm('Cancelar este pedido?')) return;
+    if(!confirm('Cancelar?')) return;
     atualizarStatus(b.dataset.cancelar, 'CANCELADO');
   }));
   $$('[data-imprimir]').forEach(b => b.addEventListener('click', () => imprimirRecibo(b.dataset.imprimir)));
 }
 
-/* TABELA */
+/* ============ TABELA ============ */
 function renderTabela(){
   const pedidos = Store.get('frango_pedidos', []);
   let filtrados = pedidos;
   if(filtroAtual !== 'todos') filtrados = pedidos.filter(p => p.status === filtroAtual);
 
-  $('#totalRegistos').textContent = `${filtrados.length} registos`;
+  if($('#totalRegistos')) $('#totalRegistos').textContent = `${filtrados.length} registos`;
 
   const body = $('#tabelaPedidosBody');
   if(!body) return;
 
   if(!filtrados.length){
     body.innerHTML = `<tr><td colspan="13" class="empty">Sem registos.</td></tr>`;
-    $('#totalGeral').textContent = '0 MT';
+    if($('#totalGeral')) $('#totalGeral').textContent = '0 MT';
     return;
   }
 
@@ -214,7 +288,10 @@ function renderTabela(){
     const isEntregue = p.status === 'ENTREGUE';
     const isCancelado = p.status === 'CANCELADO';
     const isPendente = !isEntregue && !isCancelado;
-    const badgeClass = isEntregue ? 'badge-entregue' : isCancelado ? 'badge-cancelado' : 'badge-pendente';
+
+    const badgeClass = isEntregue ? 'badge-entregue'
+                     : isCancelado ? 'badge-cancelado'
+                     : 'badge-pendente';
 
     const acoes = isPendente
       ? `<div class="acoes-linha">
@@ -238,7 +315,7 @@ function renderTabela(){
         <td>${p.totalItens || 0}</td>
         <td>${p.modo === 'entrega' ? '🛵 Entrega' : '🏪 Retirada'}</td>
         <td>${p.zona || '—'}</td>
-        <td>${p.entrega ? p.entrega + ' MT' : '—'}</td>
+        <td>${p.taxa ? p.taxa + ' MT' : '—'}</td>
         <td><b>${p.total} MT</b></td>
         <td><span class="badge ${badgeClass}">${p.status}</span></td>
         <td>${acoes}</td>
@@ -247,7 +324,7 @@ function renderTabela(){
   }).join('');
 
   const total = filtrados.reduce((s, p) => s + (p.total || 0), 0);
-  $('#totalGeral').textContent = `${total} MT`;
+  if($('#totalGeral')) $('#totalGeral').textContent = `${total} MT`;
 
   body.querySelectorAll('[data-entregue]').forEach(b => b.addEventListener('click', () => {
     if(!confirm('Marcar como ENTREGUE?')) return;
@@ -260,7 +337,7 @@ function renderTabela(){
   body.querySelectorAll('[data-imprimir]').forEach(b => b.addEventListener('click', () => imprimirRecibo(b.dataset.imprimir)));
 }
 
-/* FILTROS */
+/* ============ FILTROS ============ */
 $$('.filtro-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     $$('.filtro-btn').forEach(b => b.classList.remove('active'));
@@ -270,7 +347,7 @@ $$('.filtro-btn').forEach(btn => {
   });
 });
 
-/* ATUALIZAR STATUS */
+/* ============ ATUALIZAR STATUS ============ */
 async function atualizarStatus(id, novoStatus){
   const pedidos = Store.get('frango_pedidos', []);
   const p = pedidos.find(x => x.id === id);
@@ -286,7 +363,11 @@ async function atualizarStatus(id, novoStatus){
         p.status = novoStatus;
         Store.set('frango_pedidos', pedidos);
       }
-    }catch(err){ console.error('❌', err); alert('Erro.'); return; }
+    }catch(err){
+      console.error('❌', err);
+      alert('Erro.');
+      return;
+    }
   } else {
     if(novoStatus === 'CANCELADO'){
       Store.set('frango_pedidos', pedidos.filter(x => x.id !== id));
@@ -300,17 +381,7 @@ async function atualizarStatus(id, novoStatus){
   renderTabela();
 }
 
-/* RECARREGAR */
-$('#resetBtn')?.addEventListener('click', () => {
-  if(!confirm('Recarregar?')) return;
-  localStorage.removeItem('frango_config');
-  localStorage.removeItem('frango_produtos');
-  Store.set('frango_config', CONFIG);
-  Store.set('frango_produtos', PRODUTOS_PADRAO);
-  location.reload();
-});
-
-/* RECIBO PDF */
+/* ============ IMPRIMIR ============ */
 function imprimirRecibo(id){
   const pedidos = Store.get('frango_pedidos', []);
   const p = pedidos.find(x => x.id === id);
@@ -318,97 +389,11 @@ function imprimirRecibo(id){
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
-
-  const x = 8, w = 148 - 16;
-  doc.setFillColor(42, 20, 8);
-  doc.rect(0, 0, 148, 26, 'F');
-  doc.setFillColor(255, 184, 0);
-  doc.triangle(0, 26, 30, 26, 0, 10, 'F');
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('FRANGO DOURADO', x, 11);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('Quelimane · Moçambique', x, 17);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('PEDIDO', 148 - x, 11, { align: 'right' });
-  doc.setFontSize(14);
-  doc.setTextColor(255, 210, 0);
-  doc.text(`#${p.id.slice(-6)}`, 148 - x, 18, { align: 'right' });
-
-  let y = 34;
-  doc.setTextColor(120, 120, 120);
-  doc.setFontSize(9);
-  doc.text(`Emitido: ${new Date(p.data).toLocaleString('pt-PT')}`, x, y);
-  doc.text(`Estado: ${p.status}`, 148 - x, y, { align: 'right' });
-  y += 8;
-
-  function caixa(titulo, linhas){
-    const altura = 7 + linhas.length * 6 + 4;
-    doc.setFillColor(255, 250, 245);
-    doc.setDrawColor(230, 230, 230);
-    doc.roundedRect(x, y, w, altura, 1.5, 1.5, 'FD');
-    doc.setFillColor(255, 184, 0);
-    doc.rect(x, y, 1.5, altura, 'F');
-    doc.setTextColor(42, 20, 8);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text(titulo.toUpperCase(), x + 4, y + 5);
-    let ly = y + 11;
-    doc.setFontSize(9);
-    linhas.forEach(([c, v]) => {
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(120, 120, 120);
-      doc.text(c, x + 4, ly);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(20, 20, 30);
-      doc.text(String(v).substring(0, 42), x + w - 4, ly, { align: 'right' });
-      ly += 6;
-    });
-    y += altura + 3;
-  }
-
-  caixa('Cliente', [['Nome', p.cliente], ['Telefone', p.telefone]]);
-
-  const itens = (p.itensTexto || '').split('\n').map(l => {
-    const partes = l.replace('• ', '').split(' — ');
-    return [partes[0] || '', partes[1] || ''];
-  });
-  caixa('Itens', itens);
-
-  const linhasEnt = [['Modo', p.modo === 'entrega' ? 'Entrega' : 'Retirada']];
-  if(p.modo === 'entrega'){
-    linhasEnt.push(['Zona', p.zona || '—']);
-    linhasEnt.push(['Endereço', p.endereco || '—']);
-    if(p.referencia) linhasEnt.push(['Referência', p.referencia]);
-  }
-  linhasEnt.push(['Taxa', p.entrega ? p.entrega + ' MT' : '—']);
-  caixa('Entrega', linhasEnt);
-
-  y += 2;
-  doc.setFillColor(42, 20, 8);
-  doc.roundedRect(x, y, w, 16, 2, 2, 'F');
-  doc.setFillColor(255, 184, 0);
-  doc.rect(x, y, 2, 16, 'F');
-  doc.setTextColor(255, 210, 0);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('TOTAL', x + 5, y + 6);
-  doc.setFontSize(20);
-  doc.setTextColor(255, 255, 255);
-  doc.text(`${p.total} MT`, x + w - 5, y + 11, { align: 'right' });
-
-  doc.setFontSize(7);
-  doc.setTextColor(150, 150, 150);
-  doc.text('Frango Dourado · Documento gerado automaticamente', 74, 200, { align: 'center' });
-
+  desenharReciboGrande(doc, p);
   doc.save(`Recibo_Frango_${p.id.slice(-6)}.pdf`);
 }
 
-/* EXTRATO */
+/* ============ EXTRATO COMPLETO ============ */
 $('#imprimirExtrato')?.addEventListener('click', () => {
   const pedidos = Store.get('frango_pedidos', []);
   let filtrados = pedidos;
@@ -446,7 +431,7 @@ $('#imprimirExtrato')?.addEventListener('click', () => {
     p.totalItens || 0,
     p.modo === 'entrega' ? 'Entrega' : 'Retirada',
     p.zona || '—',
-    p.entrega ? `${p.entrega} MT` : '—',
+    p.taxa ? `${p.taxa} MT` : '—',
     `${p.total} MT`,
     p.status
   ]);
@@ -459,16 +444,15 @@ $('#imprimirExtrato')?.addEventListener('click', () => {
     foot: [['','','','','','','','','','TOTAL:',`${total} MT`,'']],
     theme: 'grid',
     styles: { fontSize: 7, cellPadding: 2 },
-    headStyles: { fillColor:[42,20,8], textColor:[255,255,255], fontStyle:'bold', halign:'center' },
+    headStyles: { fillColor:[42,20,8], textColor:[255,255,255], fontStyle:'bold' },
     footStyles: { fillColor:[255,210,0], textColor:[42,20,8], fontStyle:'bold' },
-    alternateRowStyles: { fillColor:[255,250,245] },
     margin: { left: margin, right: margin }
   });
 
   doc.save(`Extrato_Frango_${new Date().toISOString().slice(0,10)}.pdf`);
 });
 
-/* RECIBOS MINI */
+/* ============ RECIBOS MINI ============ */
 $('#imprimirMini')?.addEventListener('click', () => {
   const pedidos = Store.get('frango_pedidos', []);
   let filtrados = pedidos;
@@ -490,7 +474,6 @@ $('#imprimirMini')?.addEventListener('click', () => {
     const y = mY + row * (cH + gY);
     if(i > 0 && pos === 0) doc.addPage();
 
-    // Cartão mini
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.2);
     doc.setLineDash([1, 1], 0);
@@ -521,7 +504,6 @@ $('#imprimirMini')?.addEventListener('click', () => {
     doc.text(p.telefone || '—', x + 2, cy);
     cy += 4;
 
-    // Itens (compacto)
     doc.setFontSize(5);
     const linhasItens = (p.itensTexto || '').split('\n').slice(0, 5);
     linhasItens.forEach(l => {
@@ -534,7 +516,6 @@ $('#imprimirMini')?.addEventListener('click', () => {
       doc.text(`+ ${(p.itensTexto || '').split('\n').length - 5} mais`, x + 2, cy);
     }
 
-    // Total no fundo
     const totalY = y + cH - 8;
     doc.setFillColor(42, 20, 8);
     doc.rect(x, totalY, cW, 8, 'F');
@@ -553,13 +534,104 @@ $('#imprimirMini')?.addEventListener('click', () => {
   doc.save(`Recibos_Frango_${filtrados.length}.pdf`);
 });
 
-/* FECHAR DIA / APAGAR */
+/* ============ RECIBO GRANDE ============ */
+function desenharReciboGrande(doc, p){
+  const x = 8, w = 148 - 16;
+  const escuro = [42, 20, 8], laranja = [255, 184, 0];
+
+  doc.setFillColor(...escuro);
+  doc.rect(0, 0, 148, 26, 'F');
+  doc.setFillColor(...laranja);
+  doc.triangle(0, 26, 30, 26, 0, 10, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('FRANGO DOURADO', x, 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Quelimane · Moçambique', x, 17);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('PEDIDO', 148 - x, 11, { align: 'right' });
+  doc.setFontSize(14);
+  doc.setTextColor(255, 210, 0);
+  doc.text(`#${p.id.slice(-6)}`, 148 - x, 18, { align: 'right' });
+
+  let y = 34;
+  doc.setTextColor(120, 120, 120);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Emitido: ${new Date(p.data).toLocaleString('pt-PT')}`, x, y);
+  doc.text(`Estado: ${p.status}`, 148 - x, y, { align: 'right' });
+  y += 8;
+
+  function caixa(titulo, linhas){
+    const altura = 7 + linhas.length * 6 + 4;
+    doc.setFillColor(255, 250, 245);
+    doc.setDrawColor(230, 230, 230);
+    doc.roundedRect(x, y, w, altura, 1.5, 1.5, 'FD');
+    doc.setFillColor(...laranja);
+    doc.rect(x, y, 1.5, altura, 'F');
+    doc.setTextColor(...escuro);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(titulo.toUpperCase(), x + 4, y + 5);
+    let ly = y + 11;
+    doc.setFontSize(9);
+    linhas.forEach(([c, v]) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120, 120, 120);
+      doc.text(c, x + 4, ly);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(20, 20, 30);
+      doc.text(String(v).substring(0, 42), x + w - 4, ly, { align: 'right' });
+      ly += 6;
+    });
+    y += altura + 3;
+  }
+
+  caixa('Cliente', [['Nome', p.cliente], ['Telefone', p.telefone]]);
+
+  const itens = (p.itensTexto || '').split('\n').map(l => {
+    const partes = l.replace('• ', '').split(' — ');
+    return [partes[0] || '', partes[1] || ''];
+  });
+  caixa('Itens', itens);
+
+  const linhasEnt = [['Modo', p.modo === 'entrega' ? 'Entrega' : 'Retirada']];
+  if(p.modo === 'entrega'){
+    linhasEnt.push(['Zona', p.zona || '—']);
+    linhasEnt.push(['Endereço', p.endereco || '—']);
+    if(p.referencia) linhasEnt.push(['Referência', p.referencia]);
+  }
+  linhasEnt.push(['Taxa', p.taxa ? p.taxa + ' MT' : '—']);
+  caixa('Entrega', linhasEnt);
+
+  y += 2;
+  doc.setFillColor(...escuro);
+  doc.roundedRect(x, y, w, 16, 2, 2, 'F');
+  doc.setFillColor(...laranja);
+  doc.rect(x, y, 2, 16, 'F');
+  doc.setTextColor(255, 210, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('TOTAL', x + 5, y + 6);
+  doc.setFontSize(20);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`${p.total} MT`, x + w - 5, y + 11, { align: 'right' });
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Frango Dourado · Documento gerado automaticamente', 74, 200, { align: 'center' });
+}
+
+/* ============ FECHAR DIA / APAGAR ============ */
 document.addEventListener('click', async e => {
   if(e.target.closest('#fecharDia')){
     const pedidos = Store.get('frango_pedidos', []);
     const entregues = pedidos.filter(p => p.status === 'ENTREGUE');
-    if(!entregues.length){ alert('Sem entregues.'); return; }
-    if(!confirm(`Apagar ${entregues.length} entregues?`)) return;
+    if(!entregues.length){ alert('Não há entregues.'); return; }
+    if(!confirm(`Apagar ${entregues.length} pedidos entregues?`)) return;
     if(supabaseClient){
       for(const p of entregues){
         if(p.dbId) await supabaseClient.from('pedidos_frango').delete().eq('id', p.dbId);
@@ -567,13 +639,16 @@ document.addEventListener('click', async e => {
     }
     Store.set('frango_pedidos', pedidos.filter(p => p.status !== 'ENTREGUE'));
     renderPendentes(); renderTabela();
+    alert('✅ Dia fechado.');
   }
 });
+
 document.addEventListener('click', async e => {
   if(e.target.closest('#apagarTudo')){
     if(!confirm('⚠️ Apagar TODOS os pedidos?')) return;
     if(supabaseClient) await supabaseClient.from('pedidos_frango').delete().neq('id', 0);
     Store.set('frango_pedidos', []);
     renderPendentes(); renderTabela();
+    alert('✅ Extrato limpo.');
   }
 });
