@@ -32,16 +32,16 @@ const CONFIG = {
     mensagem: "Limite de 50 itens por pedido."
   },
 
-  // ============ ENTREGA ============
+    // ============ ENTREGA ============
   entrega: {
     ativa: true,
-    gratisAcimaDe: 3000,
-    levantamento: 0,
+    gratisAcimaDe: 2000,
+    levantamento: 30,
     zonas: [
-      { nome: "Centro de Quelimane", valor: 50,  tempo: "até 40 min" },
-      { nome: "Arredores",           valor: 30,  tempo: "até 40 min" },
-      { nome: "Bairros próximos",    valor: 80,  tempo: "até 1 hora" },
-      { nome: "Periferia",           valor: 120, tempo: "até 1 hora" }
+      { id: "arredores",  nome: "Arredores",           valor: 30,  tempo: "até 40 min", desc: "Zona mais próxima" },
+      { id: "centro",     nome: "Centro de Quelimane", valor: 50,  tempo: "até 40 min", desc: "Baixa da cidade" },
+      { id: "bairros",    nome: "Bairros próximos",    valor: 80,  tempo: "até 1 hora", desc: "Bairros residenciais" },
+      { id: "periferia",  nome: "Periferia",           valor: 120, tempo: "até 1 hora", desc: "Zonas mais afastadas" }
     ],
     premium: {
       ativo: false,
@@ -49,6 +49,11 @@ const CONFIG = {
       multiplicador: 1.5
     }
   },
+
+  // ============ ENTREGADORES ============
+  entregadores: [
+    { id: "entregador_1", nome: "Cleyton Casanova",      telefone: "871632577" },
+  ],
 
   admin: {
     user: "frango",

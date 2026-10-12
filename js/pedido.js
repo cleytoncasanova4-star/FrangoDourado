@@ -1,5 +1,5 @@
 /* ============================================================
-   FRANGO DOURADO — PEDIDO (com carrinho)
+   FRANGO DOURADO — PEDIDO (com carrinho persistente)
    ============================================================ */
 
 const Store = {
@@ -14,7 +14,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const fmtMT = v => `${Number(v||0)} MT`;
 
-/* Supabase */
+/* ============ SUPABASE ============ */
 let supabaseClient = null;
 try{
   if(window.supabase && CONFIG.supabase && CONFIG.supabase.url.includes('supabase.co')){
@@ -23,7 +23,7 @@ try{
   }
 }catch(err){ console.error('❌', err); }
 
-/* Estado */
+/* ============ ESTADO ============ */
 const state = {
   carrinho: [],     // [{id, nome, preco, quantidade, icon}]
   modo: 'entrega',
@@ -50,7 +50,7 @@ async function renderMenu(){
   const porCategoria = cat => produtos.filter(p => p.categoria === cat);
   const renderGrid = cat => porCategoria(cat).map(p => `
     <div class="pd-menu-item ${p.disponivel ? '' : 'unavailable'}" data-id="${p.id}">
-      <div class="pd-mi-icon">${p.icon}</div>
+      <div class="pd-mi-icon">${p.icon || '🍗'}</div>
       <div class="pd-mi-info">
         <b>${p.nome}</b>
         <small>${p.desc || ''}</small>
@@ -121,6 +121,9 @@ function subtotal(){
 }
 
 function atualizarCarrinho(){
+  // ⭐ GUARDA o carrinho sempre que muda
+  Store.set('frango_carrinho', state.carrinho);
+
   // Badge
   const total = totalItens();
   const badge = $('#pdCartBadge');
@@ -128,31 +131,31 @@ function atualizarCarrinho(){
 
   // Corpo do carrinho
   const body = $('#pdCartBody');
-  if(!body) return;
-
-  if(!state.carrinho.length){
-    body.innerHTML = `<p class="pd-cart-empty">🛒 O carrinho está vazio.<br><small style="font-size:12px;opacity:.7">Toque no + dos itens para adicionar</small></p>`;
-  } else {
-    body.innerHTML = state.carrinho.map(item => `
-      <div class="pd-cart-item">
-        <div class="pd-cart-item-icon">${item.icon || '🍗'}</div>
-        <div class="pd-cart-item-info">
-          <b>${item.nome}</b>
-          <small>${item.preco} MT × ${item.quantidade} = ${item.preco * item.quantidade} MT</small>
+  if(body){
+    if(!state.carrinho.length){
+      body.innerHTML = `<p class="pd-cart-empty">🛒 O carrinho está vazio.<br><small style="font-size:12px;opacity:.7">Toque no + dos itens para adicionar</small></p>`;
+    } else {
+      body.innerHTML = state.carrinho.map(item => `
+        <div class="pd-cart-item">
+          <div class="pd-cart-item-icon">${item.icon || '🍗'}</div>
+          <div class="pd-cart-item-info">
+            <b>${item.nome}</b>
+            <small>${item.preco} MT × ${item.quantidade} = ${item.preco * item.quantidade} MT</small>
+          </div>
+          <div class="pd-cart-item-qty">
+            <button data-qty-menos="${item.id}">−</button>
+            <span>${item.quantidade}</span>
+            <button data-qty-mais="${item.id}">+</button>
+          </div>
+          <button class="pd-cart-item-remove" data-remove="${item.id}">🗑️</button>
         </div>
-        <div class="pd-cart-item-qty">
-          <button data-qty-menos="${item.id}">−</button>
-          <span>${item.quantidade}</span>
-          <button data-qty-mais="${item.id}">+</button>
-        </div>
-        <button class="pd-cart-item-remove" data-remove="${item.id}">🗑️</button>
-      </div>
-    `).join('');
+      `).join('');
 
-    // Eventos
-    body.querySelectorAll('[data-qty-mais]').forEach(b => b.addEventListener('click', () => alterarQuantidade(b.dataset.qtyMais, 1)));
-    body.querySelectorAll('[data-qty-menos]').forEach(b => b.addEventListener('click', () => alterarQuantidade(b.dataset.qtyMenos, -1)));
-    body.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removerDoCarrinho(b.dataset.remove)));
+      // Eventos
+      body.querySelectorAll('[data-qty-mais]').forEach(b => b.addEventListener('click', () => alterarQuantidade(b.dataset.qtyMais, 1)));
+      body.querySelectorAll('[data-qty-menos]').forEach(b => b.addEventListener('click', () => alterarQuantidade(b.dataset.qtyMenos, -1)));
+      body.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removerDoCarrinho(b.dataset.remove)));
+    }
   }
 
   // Total
@@ -163,7 +166,7 @@ function atualizarCarrinho(){
   const checkout = $('#pdCartCheckout');
   if(checkout) checkout.disabled = !state.carrinho.length;
 
-  // Se já estamos na secção de dados, atualiza a validação
+  // Atualiza validação
   validarBotaoFinal();
 }
 
@@ -185,13 +188,24 @@ $('#pdCartBtn')?.addEventListener('click', abrirCarrinho);
 $('#pdCartClose')?.addEventListener('click', fecharCarrinho);
 $('#pdCartOverlay')?.addEventListener('click', fecharCarrinho);
 
+/* ============================================================
+   BOTÃO CONTINUAR → CHECKOUT
+   ============================================================ */
 $('#pdCartCheckout')?.addEventListener('click', () => {
-  if(!state.carrinho.length) return;
+  console.log('🖱️ Clique em CONTINUAR');
 
-  // Guarda o carrinho para a página de checkout
+  if(!state.carrinho || !state.carrinho.length){
+    console.log('❌ Carrinho vazio');
+    alert('Adicione itens primeiro!');
+    return;
+  }
+
+  // Garante que está guardado
   Store.set('frango_carrinho', state.carrinho);
 
-  // Vai para o checkout
+  console.log('✅ Carrinho guardado:', localStorage.getItem('frango_carrinho'));
+
+  // Vai para checkout
   window.location.href = 'checkout.html';
 });
 
@@ -203,11 +217,13 @@ function renderModos(){
     r.checked = r.value === state.modo;
     r.onchange = () => {
       state.modo = r.value;
-      $('#pdEntregaFields').hidden = state.modo !== 'entrega';
+      const ef = $('#pdEntregaFields');
+      if(ef) ef.hidden = state.modo !== 'entrega';
       validarBotaoFinal();
     };
   });
-  $('#pdEntregaFields').hidden = state.modo !== 'entrega';
+  const ef = $('#pdEntregaFields');
+  if(ef) ef.hidden = state.modo !== 'entrega';
 }
 
 function renderZonas(){
@@ -231,7 +247,6 @@ function calcularTaxa(){
   if(state.modo === 'retirada') return cfg.entrega.levantamento || 0;
   const z = cfg.entrega.zonas[state.zona];
   if(!z) return 0;
-  // Frete grátis acima de X
   if(cfg.entrega.gratisAcimaDe && subtotal() >= cfg.entrega.gratisAcimaDe) return 0;
   return z.valor;
 }
@@ -383,7 +398,6 @@ async function enviarWhatsAppFinal(){
     ? (cfg.entrega.zonas[state.zona]?.nome || '—')
     : 'Retirada';
 
-  // Itens formatados
   const itensTexto = state.carrinho.map(item =>
     `• ${item.quantidade}x ${item.nome} — ${item.preco * item.quantidade} MT`
   ).join('\n');
@@ -412,7 +426,6 @@ async function enviarWhatsAppFinal(){
     });
   }
 
-  // WhatsApp
   const linhas = [
     cfg.mensagemWhatsApp || 'Olá, Frango Dourado!',
     '',
@@ -439,13 +452,25 @@ async function enviarWhatsAppFinal(){
   ].filter(Boolean).join('\n');
 
   window.open(`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent(linhas)}`, '_blank');
+
+  // ⭐ Limpa carrinho depois de enviar
+  localStorage.removeItem('frango_carrinho');
 }
 
 /* ============================================================
    INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
+  // ⭐ CARREGA carrinho guardado
+  const carrinhoGuardado = Store.get('frango_carrinho', []);
+  if(carrinhoGuardado && carrinhoGuardado.length){
+    state.carrinho = carrinhoGuardado;
+    console.log('✅ Carrinho restaurado:', state.carrinho.length, 'itens');
+  }
+
   renderMenu();
+  renderModos();
+  renderZonas();
   atualizarCarrinho();
   validarBotaoFinal();
 });

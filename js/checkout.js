@@ -1,6 +1,5 @@
 /* ============================================================
    FRANGO DOURADO — CHECKOUT
-   Página dedicada: entrega + dados do cliente
    ============================================================ */
 
 const Store = {
@@ -8,13 +7,13 @@ const Store = {
   set(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
 };
 
-function getProdutos(){ return Store.get('frango_produtos', PRODUTOS_PADRAO); }
 function getConfig(){ return Store.get('frango_config', CONFIG); }
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const fmtMT = v => `${Number(v||0)} MT`;
 
+/* ============ SUPABASE ============ */
 let supabaseClient = null;
 try{
   if(window.supabase && CONFIG.supabase && CONFIG.supabase.url.includes('supabase.co')){
@@ -23,16 +22,16 @@ try{
   }
 }catch(err){ console.error('❌', err); }
 
-/* Estado (vem do carrinho gravado) */
+/* ============ ESTADO ============ */
 const state = {
-  carrinho: Store.get('frango_carrinho', []),
+  carrinho: [],
   modo: 'entrega',
-  zona: 0,
-  endereco: Store.get('frango_entrega', {}).endereco || '',
-  referencia: Store.get('frango_entrega', {}).referencia || '',
+  zona: null,
+  entregador: null,
   nome: '',
   telefone: '',
-  observacoes: ''
+  observacoes: '',
+  codigo: ''
 };
 
 function arredondar(v){
@@ -42,21 +41,71 @@ function arredondar(v){
 }
 
 /* ============================================================
-   INICIALIZAÇÃO
+   INIT
    ============================================================ */
-document.addEventListener('DOMContentLoaded', () => {
-  // Se não tem carrinho → volta ao menu
-  if(!state.carrinho.length){
-    alert('O carrinho está vazio. Volte ao menu.');
+  document.addEventListener('DOMContentLoaded', () => {
+  // ⭐ LÊ de frango_pedido_temp (é o que o pedido.js usa)
+  const temp = Store.get('frango_pedido_temp', null);
+
+  console.log('🔍 Dados recebidos do pedido.js:', temp);
+
+  if(!temp){
+    console.warn('⚠️ Sem dados. A voltar ao menu...');
+    alert('Nenhum pedido em curso. Volte ao menu.');
     window.location.href = 'pedido.html';
     return;
   }
 
+  // Aceita tanto {carrinho: [...]} como [...]
+  const carrinho = temp.carrinho || temp;
+
+  if(!carrinho || !carrinho.length){
+    console.warn('⚠️ Carrinho vazio. A voltar...');
+    alert('Carrinho vazio. Volte ao menu.');
+    window.location.href = 'pedido.html';
+    return;
+  }
+
+  state.carrinho = carrinho;
+  console.log('✅ Carrinho carregado:', state.carrinho.length, 'itens');
+
   renderCarrinho();
   renderModos();
   renderZonas();
-  restaurarCampos();
+  renderEntregadores();
   validarBotao();
+
+  // Eventos
+  $('#pdCartBtn')?.addEventListener('click', abrirCarrinho);
+  $('#pdCartClose')?.addEventListener('click', fecharCarrinho);
+  $('#pdCartOverlay')?.addEventListener('click', fecharCarrinho);
+
+  document.addEventListener('input', e => {
+    if(['pdNomeCliente','pdTelefone','pdObs'].includes(e.target.id)){
+      validarBotao();
+    }
+  });
+
+  $('#pdModalResumoClose')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
+  $('#pdResumoEditar')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
+  $('#pdModalResumo')?.addEventListener('click', e => {
+    if(e.target.id === 'pdModalResumo') $('#pdModalResumo').classList.remove('active');
+  });
+
+  $('#pdVerResumo')?.addEventListener('click', abrirResumo);
+  $('#pdResumoEnviar')?.addEventListener('click', () => {
+    $('#pdModalResumo').classList.remove('active');
+    $('#pdModalAviso').classList.add('active');
+  });
+
+  $('#pdModalAvisoCancelar')?.addEventListener('click', () => $('#pdModalAviso').classList.remove('active'));
+  $('#pdModalAvisoOk')?.addEventListener('click', () => {
+    $('#pdModalAviso').classList.remove('active');
+    enviarWhatsAppFinal();
+  });
+  $('#pdModalAviso')?.addEventListener('click', e => {
+    if(e.target.id === 'pdModalAviso') $('#pdModalAviso').classList.remove('active');
+  });
 });
 
 /* ============================================================
@@ -76,11 +125,6 @@ function renderCarrinho(){
   const body = $('#pdCartBody');
   if(!body) return;
 
-  if(!state.carrinho.length){
-    body.innerHTML = `<p class="pd-cart-empty">Carrinho vazio.</p>`;
-    return;
-  }
-
   body.innerHTML = state.carrinho.map(item => `
     <div class="pd-cart-item">
       <div class="pd-cart-item-icon">${item.icon || '🍗'}</div>
@@ -88,123 +132,138 @@ function renderCarrinho(){
         <b>${item.nome}</b>
         <small>${item.preco} MT × ${item.quantidade} = ${item.preco * item.quantidade} MT</small>
       </div>
-      <div class="pd-cart-item-qty">
-        <button data-qty-menos="${item.id}">−</button>
-        <span>${item.quantidade}</span>
-        <button data-qty-mais="${item.id}">+</button>
-      </div>
-      <button class="pd-cart-item-remove" data-remove="${item.id}">🗑️</button>
     </div>
   `).join('');
 
-  body.querySelectorAll('[data-qty-mais]').forEach(b => b.addEventListener('click', () => alterarQtd(b.dataset.qtyMais, 1)));
-  body.querySelectorAll('[data-qty-menos]').forEach(b => b.addEventListener('click', () => alterarQtd(b.dataset.qtyMenos, -1)));
-  body.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removerItem(b.dataset.remove)));
-
-  const subEl = $('#pdCartTotal');
-  if(subEl) subEl.textContent = fmtMT(subtotal());
+  const totalEl = $('#pdCartTotal');
+  if(totalEl) totalEl.textContent = fmtMT(subtotal());
 }
 
-function alterarQtd(id, delta){
-  const item = state.carrinho.find(x => x.id === id);
-  if(!item) return;
-  item.quantidade += delta;
-  if(item.quantidade <= 0){
-    removerItem(id);
-    return;
-  }
-  guardar();
-  renderCarrinho();
-  validarBotao();
+function abrirCarrinho(){
+  $('#pdCartDrawer')?.classList.add('open');
+  $('#pdCartOverlay')?.classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
-
-function removerItem(id){
-  state.carrinho = state.carrinho.filter(x => x.id !== id);
-  guardar();
-  renderCarrinho();
-  validarBotao();
-
-  // Se ficou vazio → volta ao menu
-  if(!state.carrinho.length){
-    setTimeout(() => {
-      alert('Carrinho vazio. Volte ao menu.');
-      window.location.href = 'pedido.html';
-    }, 300);
-  }
-}
-
-function guardar(){
-  Store.set('frango_carrinho', state.carrinho);
+function fecharCarrinho(){
+  $('#pdCartDrawer')?.classList.remove('open');
+  $('#pdCartOverlay')?.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 /* ============================================================
-   MODOS
+   MODO (ENTREGA / RETIRADA)
    ============================================================ */
 function renderModos(){
   $$('input[name="pd-modo"]').forEach(r => {
     r.checked = r.value === state.modo;
     r.onchange = () => {
       state.modo = r.value;
-      $('#pdEntregaFields').hidden = state.modo !== 'entrega';
+      toggleSecoesPorModo();
       validarBotao();
-      calcularTaxaAtual();
     };
   });
-  $('#pdEntregaFields').hidden = state.modo !== 'entrega';
+  toggleSecoesPorModo();
 }
 
+function toggleSecoesPorModo(){
+  const isEntrega = state.modo === 'entrega';
+  if($('#pdSectionZona'))        $('#pdSectionZona').hidden = !isEntrega;
+  if($('#pdSectionEntregador'))  $('#pdSectionEntregador').hidden = !isEntrega;
+}
+
+/* ============================================================
+   ZONAS
+   ============================================================ */
 function renderZonas(){
   const cfg = getConfig();
-  const sel = $('#pdZona');
-  if(!sel) return;
+  const el = $('#pdZonas');
+  if(!el) return;
 
-  sel.innerHTML = cfg.entrega.zonas.map((z,i) =>
-    `<option value="${i}">${z.nome} — ${z.valor} MT</option>`
-  ).join('');
+  el.innerHTML = cfg.entrega.zonas.map(z => `
+    <div class="pd-option ${state.zona?.id === z.id ? 'selected' : ''}" data-zona="${z.id}">
+      <span class="pd-option-icon">📍</span>
+      <div class="pd-option-info">
+        <b>${z.nome}</b>
+        <small>${z.desc || ''} · ${z.tempo || ''}</small>
+      </div>
+      <span class="pd-option-price">${z.valor} MT</span>
+    </div>
+  `).join('');
 
-  state.zona = 0;
-  sel.onchange = () => {
-    state.zona = Number(sel.value);
-    calcularTaxaAtual();
-  };
+  el.querySelectorAll('[data-zona]').forEach(item => {
+    item.addEventListener('click', () => {
+      const z = cfg.entrega.zonas.find(x => x.id === item.dataset.zona);
+      state.zona = z;
+      el.querySelectorAll('.pd-option').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      atualizarAvisoZona();
+      validarBotao();
+    });
+  });
 }
 
-function calcularTaxa(){
+function atualizarAvisoZona(){
+  const aviso = $('#pdZonaAviso');
+  if(!aviso) return;
+  if(state.zona){
+    aviso.innerHTML = `✅ Zona: <b>${state.zona.nome}</b> — Taxa <b>${state.zona.valor} MT</b>`;
+    aviso.classList.add('active');
+  } else {
+    aviso.innerHTML = '';
+    aviso.classList.remove('active');
+  }
+}
+
+/* ============================================================
+   ENTREGADORES
+   ============================================================ */
+function renderEntregadores(){
   const cfg = getConfig();
-  if(state.modo === 'retirada') return cfg.entrega.levantamento || 0;
-  const z = cfg.entrega.zonas[state.zona];
-  if(!z) return 0;
-  if(cfg.entrega.gratisAcimaDe && subtotal() >= cfg.entrega.gratisAcimaDe) return 0;
-  return z.valor;
-}
+  const el = $('#pdEntregadores');
+  if(!el) return;
 
-function calcularTaxaAtual(){
-  // Só recalcula — o total é mostrado no resumo
-  validarBotao();
-}
+  const entregadores = cfg.entregadores || [];
 
-/* ============================================================
-   RESTAURAR CAMPOS
-   ============================================================ */
-function restaurarCampos(){
-  if($('#pdEndereco')) $('#pdEndereco').value = state.endereco;
-  if($('#pdReferencia')) $('#pdReferencia').value = state.referencia;
-}
-
-/* ============================================================
-   LOCALIZAÇÃO
-   ============================================================ */
-$('#pdUseLocation')?.addEventListener('click', () => {
-  if(!navigator.geolocation){
-    alert('Geolocalização não suportada.');
+  if(!entregadores.length){
+    el.innerHTML = `<p style="color:#C9B8A8;font-size:13px;text-align:center;padding:20px">Nenhum entregador disponível</p>`;
     return;
   }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    $('#pdEndereco').value = `Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)}`;
-    validarBotao();
-  }, () => alert('Não foi possível obter. Escreva manualmente.'));
-});
+
+  el.innerHTML = entregadores.map(e => `
+    <div class="pd-entregador ${state.entregador?.id === e.id ? 'selected' : ''}" data-entregador="${e.id}">
+      <div class="pd-entregador-avatar">🧑‍🦱</div>
+      <div class="pd-entregador-info">
+        <b>${e.nome}</b>
+        <small>Entregador · 📱 ${e.telefone || '—'}</small>
+      </div>
+      <span class="pd-entregador-check">✓</span>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('[data-entregador]').forEach(item => {
+    item.addEventListener('click', () => {
+      const ent = entregadores.find(x => x.id === item.dataset.entregador);
+      state.entregador = ent;
+      el.querySelectorAll('.pd-entregador').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      validarBotao();
+    });
+  });
+}
+
+/* ============================================================
+   TAXA
+   ============================================================ */
+function calcularTaxa(){
+  const cfg = getConfig();
+  if(state.modo === 'retirada') return cfg.entrega.levantamento || 30;
+  if(!state.zona) return 0;
+  return state.zona.valor || 0;
+}
+
+function total(){
+  return arredondar(subtotal() + calcularTaxa());
+}
 
 /* ============================================================
    VALIDAÇÃO
@@ -215,70 +274,38 @@ function validarBotao(){
 
   const nome = $('#pdNomeCliente')?.value.trim() || '';
   const telefone = $('#pdTelefone')?.value.trim() || '';
-  const endereco = $('#pdEndereco')?.value.trim() || '';
 
   let ok = true;
   let motivo = 'Preencha os dados';
 
-  if(!state.carrinho.length){ ok = false; motivo = 'Carrinho vazio'; }
-  else if(!nome){ ok = false; motivo = 'Preencha o nome'; }
+  if(!nome){ ok = false; motivo = 'Preencha o nome'; }
   else if(!telefone){ ok = false; motivo = 'Preencha o telefone'; }
   else if(telefone.replace(/\D/g,'').length < 9){ ok = false; motivo = 'Telefone inválido'; }
-  else if(state.modo === 'entrega' && !endereco){ ok = false; motivo = 'Preencha o endereço'; }
+  else if(state.modo === 'entrega' && !state.zona){ ok = false; motivo = '⚠️ Escolha a zona de entrega'; }
+  else if(state.modo === 'entrega' && !state.entregador){ ok = false; motivo = '⚠️ Escolha o entregador'; }
 
   btn.disabled = !ok;
   btn.textContent = ok ? 'VER RESUMO →' : motivo;
 }
 
-document.addEventListener('input', e => {
-  if(['pdNomeCliente','pdTelefone','pdEndereco','pdReferencia','pdObs'].includes(e.target.id)){
-    validarBotao();
-  }
-});
-
 /* ============================================================
-   DRAWER DO CARRINHO
+   RESUMO
    ============================================================ */
-$('#pdCartBtn')?.addEventListener('click', () => {
-  $('#pdCartDrawer')?.classList.add('open');
-  $('#pdCartOverlay')?.classList.add('active');
-  document.body.style.overflow = 'hidden';
-});
-$('#pdCartClose')?.addEventListener('click', () => {
-  $('#pdCartDrawer')?.classList.remove('open');
-  $('#pdCartOverlay')?.classList.remove('active');
-  document.body.style.overflow = '';
-});
-$('#pdCartOverlay')?.addEventListener('click', () => {
-  $('#pdCartDrawer')?.classList.remove('open');
-  $('#pdCartOverlay')?.classList.remove('active');
-  document.body.style.overflow = '';
-});
-
-/* ============================================================
-   MODAL RESUMO
-   ============================================================ */
-$('#pdVerResumo')?.addEventListener('click', () => {
-  state.endereco = $('#pdEndereco')?.value.trim() || '';
-  state.referencia = $('#pdReferencia')?.value.trim() || '';
+function abrirResumo(){
   state.nome = $('#pdNomeCliente')?.value.trim() || '';
   state.telefone = $('#pdTelefone')?.value.trim() || '';
   state.observacoes = $('#pdObs')?.value.trim() || '';
 
-  // Guarda para próxima visita
-  Store.set('frango_entrega', { endereco: state.endereco, referencia: state.referencia });
-
-  if(!state.carrinho.length || !state.nome || !state.telefone) return;
+  if(!state.nome || !state.telefone) return;
 
   renderResumo();
   $('#pdModalResumo').classList.add('active');
-});
+}
 
 function renderResumo(){
-  const cfg = getConfig();
   const sub = subtotal();
   const taxa = calcularTaxa();
-  const total = arredondar(sub + taxa);
+  const tot = total();
 
   const itensHTML = state.carrinho.map(item => `
     <div class="pd-resumo-item">
@@ -288,17 +315,17 @@ function renderResumo(){
   `).join('');
 
   let entregaHTML = '';
-  if(state.modo === 'retirada'){
-    entregaHTML = `
-      <div class="pd-resumo-item"><span>Modo</span><b>🏪 Retirar no restaurante</b></div>
-    `;
-  } else {
-    const zonaNome = cfg.entrega.zonas[state.zona]?.nome || '—';
+  if(state.modo === 'entrega'){
     entregaHTML = `
       <div class="pd-resumo-item"><span>Modo</span><b>🛵 Entrega</b></div>
-      <div class="pd-resumo-item"><span>Zona</span><b>${zonaNome}</b></div>
-      <div class="pd-resumo-item"><span>Endereço</span><b>${state.endereco}</b></div>
-      ${state.referencia ? `<div class="pd-resumo-item"><span>Referência</span><b>${state.referencia}</b></div>` : ''}
+      <div class="pd-resumo-item"><span>Zona</span><b>${state.zona?.nome || '—'}</b></div>
+      <div class="pd-resumo-item"><span>Entregador</span><b>🧑‍🦱 ${state.entregador?.nome || '—'}</b></div>
+      <div class="pd-resumo-item"><span>Taxa de entrega</span><b>${taxa} MT</b></div>
+    `;
+  } else {
+    entregaHTML = `
+      <div class="pd-resumo-item"><span>Modo</span><b>🏪 Retirada no restaurante</b></div>
+      <div class="pd-resumo-item"><span>Taxa de serviço</span><b>${taxa} MT</b></div>
     `;
   }
 
@@ -316,34 +343,10 @@ function renderResumo(){
 
     <div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.15)"></div>
     <div class="pd-resumo-item"><span>Subtotal</span><b>${sub} MT</b></div>
-    <div class="pd-resumo-item"><span>Taxa de entrega</span><b>${taxa > 0 ? taxa + ' MT' : '—'}</b></div>
-    <div class="pd-resumo-item total"><span>TOTAL</span><b>${total} MT</b></div>
+    <div class="pd-resumo-item"><span>Taxa</span><b>${taxa} MT</b></div>
+    <div class="pd-resumo-item total"><span>TOTAL</span><b>${tot} MT</b></div>
   `;
 }
-
-$('#pdModalResumoClose')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
-$('#pdResumoEditar')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
-$('#pdModalResumo')?.addEventListener('click', e => {
-  if(e.target.id === 'pdModalResumo') $('#pdModalResumo').classList.remove('active');
-});
-
-/* Enviar → abre modal aviso */
-$('#pdResumoEnviar')?.addEventListener('click', () => {
-  $('#pdModalResumo').classList.remove('active');
-  $('#pdModalAviso').classList.add('active');
-});
-
-/* ============================================================
-   MODAL AVISO
-   ============================================================ */
-$('#pdModalAvisoCancelar')?.addEventListener('click', () => $('#pdModalAviso').classList.remove('active'));
-$('#pdModalAvisoOk')?.addEventListener('click', () => {
-  $('#pdModalAviso').classList.remove('active');
-  enviarWhatsAppFinal();
-});
-$('#pdModalAviso')?.addEventListener('click', e => {
-  if(e.target.id === 'pdModalAviso') $('#pdModalAviso').classList.remove('active');
-});
 
 /* ============================================================
    ENVIAR WHATSAPP
@@ -352,10 +355,7 @@ async function enviarWhatsAppFinal(){
   const cfg = getConfig();
   const sub = subtotal();
   const taxa = calcularTaxa();
-  const total = arredondar(sub + taxa);
-  const zonaNome = state.modo === 'entrega'
-    ? (cfg.entrega.zonas[state.zona]?.nome || '—')
-    : 'Retirada';
+  const tot = total();
 
   const itensTexto = state.carrinho.map(item =>
     `• ${item.quantidade}x ${item.nome} — ${item.preco * item.quantidade} MT`
@@ -369,12 +369,14 @@ async function enviarWhatsAppFinal(){
     total_itens: totalItens(),
     subtotal: sub,
     modo: state.modo,
-    zona: zonaNome,
-    endereco: state.endereco,
-    referencia: state.referencia,
+    zona: state.modo === 'entrega' ? (state.zona?.nome || '—') : 'Retirada',
+    entregador: state.modo === 'entrega' ? (state.entregador?.nome || '—') : '',
+    entregador_telefone: state.modo === 'entrega' ? (state.entregador?.telefone || '') : '',
+    endereco: '',
+    referencia: '',
     observacoes: state.observacoes,
     taxa: taxa,
-    total: total,
+    total: tot,
     status: 'PENDENTE'
   };
 
@@ -385,6 +387,7 @@ async function enviarWhatsAppFinal(){
     });
   }
 
+  // ===== WHATSAPP =====
   const linhas = [
     cfg.mensagemWhatsApp || 'Olá, Frango Dourado!',
     '',
@@ -394,24 +397,21 @@ async function enviarWhatsAppFinal(){
     '🍗 ITENS DO PEDIDO:',
     itensTexto,
     '',
-    `📦 Modo: ${state.modo === 'entrega' ? 'Entrega' : 'Retirar no restaurante'}`,
-    state.modo === 'entrega' ? `📍 Zona: ${zonaNome}` : '',
-    state.modo === 'entrega' ? `🏠 Endereço: ${state.endereco}` : '',
-    state.referencia ? `📌 Referência: ${state.referencia}` : '',
+    `📦 Modo: ${state.modo === 'entrega' ? 'Entrega' : 'Retirada'}`,
+    state.modo === 'entrega' ? `📍 Zona: ${state.zona?.nome}` : '',
+    state.modo === 'entrega' ? `🧑‍🦱 Entregador: ${state.entregador?.nome}` : '',
+    state.modo === 'entrega' ? `📞 Contacto: ${state.entregador?.telefone || '—'}` : '',
     state.observacoes ? `💬 Obs.: ${state.observacoes}` : '',
     '',
     `Subtotal: ${sub} MT`,
-    taxa > 0 ? `Taxa de entrega: ${taxa} MT` : '',
+    taxa > 0 ? `Taxa: ${taxa} MT` : '',
     '',
-    `💰 TOTAL: ${total} MT`,
-    '',
-    '⚠️ Tenho até 40 minutos para receber ou levantar o pedido.',
+    `💰 TOTAL: ${tot} MT`,
     '',
     'Pedido realizado através do site do Frango Dourado.'
   ].filter(Boolean).join('\n');
 
   window.open(`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent(linhas)}`, '_blank');
 
-  // Limpa o carrinho
-  Store.set('frango_carrinho', []);
+  localStorage.removeItem('frango_pedido_temp');
 }

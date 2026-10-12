@@ -752,3 +752,131 @@ input,select,textarea{font-family:inherit}
   .pd-progress-step span{width:28px;height:28px;font-size:12px}
   .pd-progress-step small{font-size:9px}
 }
+/* ============================================================
+   OPÇÕES DE ZONA (botões grandes)
+   ============================================================ */
+.pd-options-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.pd-option{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:16px;
+  border-radius:14px;
+  background:rgba(0,0,0,.3);
+  border:2px solid rgba(255,255,255,.06);
+  cursor:pointer;
+  transition:.2s;
+}
+.pd-option:hover{
+  border-color:rgba(255,102,0,.4);
+  background:rgba(255,102,0,.06);
+}
+.pd-option.selected{
+  border-color:#FF6600;
+  background:linear-gradient(135deg,rgba(255,102,0,.18),rgba(227,6,19,.08));
+  box-shadow:0 0 20px rgba(255,102,0,.3);
+}
+
+.pd-option-icon{
+  font-size:26px;
+  width:44px;height:44px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,102,0,.1);
+  border-radius:12px;
+  flex-shrink:0;
+}
+
+.pd-option-info{flex:1;text-align:left}
+.pd-option-info b{display:block;font-size:15px;font-weight:700;margin-bottom:3px}
+.pd-option-info small{font-size:12px;color:#98A2B3;line-height:1.3}
+
+.pd-option-price{
+  font-family:var(--display);
+  font-size:18px;
+  font-weight:800;
+  color:#FFD200;
+  white-space:nowrap;
+}
+
+/* ============ AVISO DA ZONA ESCOLHIDA ============ */
+.pd-zona-aviso{
+  margin-top:12px;
+  padding:12px 16px;
+  border-radius:10px;
+  font-size:13px;
+  font-weight:600;
+  text-align:center;
+  background:rgba(0,200,83,.1);
+  border:1px solid rgba(0,200,83,.3);
+  color:#00C853;
+  display:none;
+}
+.pd-zona-aviso.active{display:block}
+.pd-zona-aviso b{color:#00C853;font-weight:800}
+
+/* ============================================================
+   ENTREGADORES
+   ============================================================ */
+.pd-entregadores{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.pd-entregador{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:14px;
+  border-radius:14px;
+  background:rgba(0,0,0,.3);
+  border:2px solid rgba(255,255,255,.06);
+  cursor:pointer;
+  transition:.2s;
+  position:relative;
+}
+.pd-entregador:hover{
+  border-color:rgba(255,184,0,.4);
+  background:rgba(255,184,0,.06);
+}
+.pd-entregador.selected{
+  border-color:#FFB800;
+  background:linear-gradient(135deg,rgba(255,184,0,.2),rgba(227,6,19,.08));
+  box-shadow:0 0 20px rgba(255,184,0,.35);
+}
+
+.pd-entregador-avatar{
+  font-size:28px;
+  width:48px;height:48px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,184,0,.1);
+  border-radius:50%;
+  flex-shrink:0;
+}
+
+.pd-entregador-info{flex:1;text-align:left}
+.pd-entregador-info b{display:block;font-size:15px;font-weight:700;margin-bottom:3px}
+.pd-entregador-info small{font-size:12px;color:#98A2B3}
+
+.pd-entregador-check{
+  width:28px;height:28px;
+  border-radius:50%;
+  background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+  font-weight:900;
+  color:transparent;
+  transition:.2s;
+  flex-shrink:0;
+}
+.pd-entregador.selected .pd-entregador-check{
+  background:#00C853;
+  border-color:#00C853;
+  color:#fff;
+}
