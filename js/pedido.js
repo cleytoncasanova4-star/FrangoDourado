@@ -192,23 +192,15 @@ $('#pdCartOverlay')?.addEventListener('click', fecharCarrinho);
    BOTÃO CONTINUAR → CHECKOUT
    ============================================================ */
 $('#pdCartCheckout')?.addEventListener('click', () => {
-  console.log('🖱️ Clique em CONTINUAR');
-
-  if(!state.carrinho || !state.carrinho.length){
-    console.log('❌ Carrinho vazio');
-    alert('Adicione itens primeiro!');
-    return;
-  }
-
-  // Garante que está guardado
-  Store.set('frango_carrinho', state.carrinho);
-
-  console.log('✅ Carrinho guardado:', localStorage.getItem('frango_carrinho'));
-
+  // Guarda direto no localStorage SEM conversões
+  const json = JSON.stringify(state.carrinho);
+  localStorage.setItem('frango_carrinho', json);
+  
+  console.log('✅ Guardado direto:', json);
+  
   // Vai para checkout
   window.location.href = 'checkout.html';
 });
-
 /* ============================================================
    MODOS DE ENTREGA
    ============================================================ */
@@ -461,12 +453,22 @@ async function enviarWhatsAppFinal(){
    INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  // ⭐ CARREGA carrinho guardado
-  const carrinhoGuardado = Store.get('frango_carrinho', []);
-  if(carrinhoGuardado && carrinhoGuardado.length){
-    state.carrinho = carrinhoGuardado;
-    console.log('✅ Carrinho restaurado:', state.carrinho.length, 'itens');
+   // Lê DIRETO
+  const raw = localStorage.getItem('frango_carrinho');
+  console.log('🔍 RAW:', raw);
+  
+  const carrinho = raw ? JSON.parse(raw) : [];
+  
+  console.log('✅ Carrinho:', carrinho);
+
+  if(!carrinho.length){
+    alert('Carrinho vazio.');
+    window.location.href = 'pedido.html';
+    return;
   }
+
+  state.carrinho = carrinho;
+    console.log('✅ Carrinho restaurado:', state.carrinho.length, 'itens');
 
   renderMenu();
   renderModos();

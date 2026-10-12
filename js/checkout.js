@@ -40,27 +40,15 @@ function arredondar(v){
   return (c - i) >= 0.5 ? i + 1 : i;
 }
 
-/* ============================================================
-   INIT
-   ============================================================ */
+
   document.addEventListener('DOMContentLoaded', () => {
-  // ⭐ LÊ de frango_pedido_temp (é o que o pedido.js usa)
-  const temp = Store.get('frango_pedido_temp', null);
+  // ✅ LÊ de frango_carrinho (é onde o pedido.js grava)
+  const carrinho = Store.get('frango_carrinho', []);
 
-  console.log('🔍 Dados recebidos do pedido.js:', temp);
-
-  if(!temp){
-    console.warn('⚠️ Sem dados. A voltar ao menu...');
-    alert('Nenhum pedido em curso. Volte ao menu.');
-    window.location.href = 'pedido.html';
-    return;
-  }
-
-  // Aceita tanto {carrinho: [...]} como [...]
-  const carrinho = temp.carrinho || temp;
+  console.log('🔍 Carrinho recebido:', carrinho);
 
   if(!carrinho || !carrinho.length){
-    console.warn('⚠️ Carrinho vazio. A voltar...');
+    console.warn('⚠️ Sem carrinho. A voltar ao menu...');
     alert('Carrinho vazio. Volte ao menu.');
     window.location.href = 'pedido.html';
     return;
@@ -75,17 +63,19 @@ function arredondar(v){
   renderEntregadores();
   validarBotao();
 
-  // Eventos
+  // Eventos do carrinho
   $('#pdCartBtn')?.addEventListener('click', abrirCarrinho);
   $('#pdCartClose')?.addEventListener('click', fecharCarrinho);
   $('#pdCartOverlay')?.addEventListener('click', fecharCarrinho);
 
+  // Inputs
   document.addEventListener('input', e => {
     if(['pdNomeCliente','pdTelefone','pdObs'].includes(e.target.id)){
       validarBotao();
     }
   });
 
+  // Modais
   $('#pdModalResumoClose')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
   $('#pdResumoEditar')?.addEventListener('click', () => $('#pdModalResumo').classList.remove('active'));
   $('#pdModalResumo')?.addEventListener('click', e => {
