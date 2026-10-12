@@ -445,8 +445,18 @@ async function enviarWhatsAppFinal(){
 
   window.open(`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent(linhas)}`, '_blank');
 
-  // ⭐ Limpa carrinho depois de enviar
+  // ⭐ LIMPAR o carrinho depois de enviar
   localStorage.removeItem('frango_carrinho');
+  state.carrinho = [];
+  
+  console.log('✅ Carrinho limpo após envio');
+
+  // Opcional: mostra mensagem
+  setTimeout(() => {
+    alert('✅ Pedido enviado! Obrigado 🍗');
+    // Redireciona ao menu após 2 segundos
+    window.location.href = 'pedido.html';
+  }, 500);
 }
 
 /* ============================================================
@@ -460,12 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const carrinho = raw ? JSON.parse(raw) : [];
   
   console.log('✅ Carrinho:', carrinho);
-
-  if(!carrinho.length){
-    alert('Carrinho vazio.');
-    window.location.href = 'pedido.html';
-    return;
-  }
 
   state.carrinho = carrinho;
     console.log('✅ Carrinho restaurado:', state.carrinho.length, 'itens');

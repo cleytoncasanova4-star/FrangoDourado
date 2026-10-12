@@ -412,5 +412,12 @@ async function enviarWhatsAppFinal(){
 
   window.open(`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent(linhas)}`, '_blank');
 
-  localStorage.removeItem('frango_pedido_temp');
+  // ⭐ LIMPAR
+  localStorage.removeItem('frango_carrinho');
+  state.carrinho = [];
+
+  // Volta ao menu após 2 segundos
+  setTimeout(() => {
+    window.location.href = 'pedido.html';
+  }, 2000);
 }
