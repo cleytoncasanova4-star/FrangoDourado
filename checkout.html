@@ -2,83 +2,30 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-<title>Finalizar — Frango Dourado</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/pedido.css"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Finalizar Pedido — Frango Dourado</title>
+<link rel="stylesheet" href="css/checkout.css"/>
 </head>
 <body>
 
-<!-- ============ HEADER ============ -->
 <header class="pd-header">
   <div class="pd-inner">
-    <a href="pedido.html" class="pd-brand">
-      <div class="pd-logo">
-        <svg viewBox="0 0 60 50">
-          <defs>
-            <linearGradient id="frangoGradCo" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#FFD200"/>
-              <stop offset="60%" stop-color="#FFB800"/>
-              <stop offset="100%" stop-color="#E30613"/>
-            </linearGradient>
-          </defs>
-          <ellipse cx="30" cy="28" rx="16" ry="14" fill="url(#frangoGradCo)"/>
-          <circle cx="30" cy="14" r="8" fill="url(#frangoGradCo)"/>
-          <path d="M24 8 L26 4 L28 8 L30 3 L32 8 L34 4 L36 8" stroke="#E30613" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          <path d="M36 14 L42 15 L36 17 Z" fill="#E30613"/>
-          <circle cx="32" cy="13" r="1.2" fill="#2A1408"/>
-        </svg>
-      </div>
-      <div class="pd-brand-text">
-        <b>FRANGO <span>DOURADO</span></b>
-        <small>FINALIZAR PEDIDO</small>
-      </div>
-    </a>
-
-    <div class="pd-header-actions">
-      <button class="pd-cart-btn" id="pdCartBtn">
-        🛒 <span class="pd-cart-badge" id="pdCartBadge">0</span>
-      </button>
-      <a href="pedido.html" class="pd-voltar">← Menu</a>
-    </div>
+    <div class="pd-brand-text"><b>FRANGO <span>DOURADO</span></b></div>
+    <a href="pedido.html" class="pd-voltar">← Voltar ao menu</a>
   </div>
 </header>
 
-<!-- ============ BARRA DE PROGRESSO ============ -->
-<div class="pd-progress">
-  <div class="pd-progress-step completed">
-    <span>1</span>
-    <small>Menu</small>
-  </div>
-  <div class="pd-progress-line"></div>
-  <div class="pd-progress-step active">
-    <span>2</span>
-    <small>Entrega</small>
-  </div>
-  <div class="pd-progress-line"></div>
-  <div class="pd-progress-step">
-    <span>3</span>
-    <small>WhatsApp</small>
-  </div>
-</div>
-
-<!-- ============ MAIN ============ -->
 <main class="pd-main">
-
-  <div class="pd-titulo">
-    <h1>Como quer receber?</h1>
-    <p>Escolha entre entrega ou retirada no restaurante.</p>
+  <div style="text-align: center; margin-bottom: 20px;">
+    <h1 style="font-family: 'Rajdhani'; font-size: 26px; color: var(--texto);">Finalizar Pedido</h1>
+    <p style="color: var(--texto-leve); font-size: 14px;">Escolha como quer receber a sua encomenda.</p>
   </div>
 
-  <!-- MODO: ENTREGA / RETIRADA -->
-  <section class="pd-section">
-    <h2>🚚 Modo de Entrega</h2>
-
+  <section class="checkout-section">
+    <h2>1. Como quer receber?</h2>
     <div class="pd-modos">
       <label class="pd-modo">
-        <input type="radio" name="pd-modo" value="entrega" checked/>
+        <input type="radio" name="pd-modo" value="entrega" checked onchange="toggleModo()"/>
         <div class="pd-modo-inner">
           <span class="pd-modo-icon">🛵</span>
           <b>ENTREGA</b>
@@ -86,7 +33,7 @@
         </div>
       </label>
       <label class="pd-modo">
-        <input type="radio" name="pd-modo" value="retirada"/>
+        <input type="radio" name="pd-modo" value="retirada" onchange="toggleModo()"/>
         <div class="pd-modo-inner">
           <span class="pd-modo-icon">🏪</span>
           <b>RETIRAR</b>
@@ -94,112 +41,57 @@
         </div>
       </label>
     </div>
-  </section>
 
-  <!-- ESCOLHER ZONA -->
-  <section class="pd-section" id="pdSectionZona">
-    <h2>📍 Escolhe a tua localização</h2>
-    <p style="font-size:13px;color:#C9B8A8;margin-bottom:14px">
-      Toque na zona mais próxima de si. A taxa é adicionada ao total.
-    </p>
-    <div class="pd-options-grid" id="pdZonas"></div>
-    <div class="pd-zona-aviso" id="pdZonaAviso"></div>
-  </section>
+    <!-- CAMPOS SÓ PARA ENTREGA -->
+    <div id="pdFieldsEntrega">
+      <div class="pd-field">
+        <label>Escolha a sua Zona</label>
+        <div id="pdZonas"></div>
+      </div>
+      
+      <div class="pd-field">
+        <label>Endereço / Localização</label>
+        <input type="text" id="pdEndereco" placeholder="Ex.: Bairro, rua, número"/>
+      </div>
 
-  <!-- ESCOLHER ENTREGADOR -->
-  <section class="pd-section" id="pdSectionEntregador">
-    <h2>🧑‍🦱 Escolhe o entregador</h2>
-    <p style="font-size:13px;color:#C9B8A8;margin-bottom:14px">
-      O cliente precisa de saber quem vai entregar o pedido.
-    </p>
-    <div class="pd-entregadores" id="pdEntregadores"></div>
-  </section>
-
-  <!-- DADOS DO CLIENTE -->
-  <section class="pd-section">
-    <h2>👤 Os seus dados</h2>
-    <div class="pd-field">
-      <label>Nome completo</label>
-      <input type="text" id="pdNomeCliente" placeholder="O seu nome" autocomplete="name"/>
-    </div>
-    <div class="pd-field">
-      <label>Telefone</label>
-      <input type="tel" id="pdTelefone" placeholder="Ex.: 84XXXXXXX" autocomplete="tel"/>
-    </div>
-    <div class="pd-field">
-      <label>Observações (opcional)</label>
-      <textarea id="pdObs" rows="2" placeholder="Ex.: Sem piri-piri, mais arroz"></textarea>
-    </div>
-  </section>
-
-  <!-- BOTÃO FINAL -->
-  <button class="pd-btn-final" id="pdVerResumo" disabled>Preencha os dados</button>
-
-</main>
-
-<!-- ============ DRAWER DO CARRINHO ============ -->
-<div class="pd-cart-overlay" id="pdCartOverlay"></div>
-<aside class="pd-cart-drawer" id="pdCartDrawer">
-  <div class="pd-cart-head">
-    <h2>🛒 O seu carrinho</h2>
-    <button class="pd-cart-close" id="pdCartClose">✕</button>
-  </div>
-  <div class="pd-cart-body" id="pdCartBody"></div>
-  <div class="pd-cart-foot">
-    <div class="pd-cart-total">
-      <span>Subtotal</span>
-      <b id="pdCartTotal">0 MT</b>
-    </div>
-    <a href="pedido.html" class="pd-cart-checkout" style="text-align:center;text-decoration:none;display:block">
-      ← VOLTAR AO MENU
-    </a>
-  </div>
-</aside>
-
-<!-- ============ MODAL RESUMO ============ -->
-<div class="pd-modal" id="pdModalResumo">
-  <div class="pd-modal-box">
-    <div class="pd-modal-head">
-      <h2>📋 Resumo do pedido</h2>
-      <button class="pd-modal-close" id="pdModalResumoClose">✕</button>
-    </div>
-    <div class="pd-modal-body" id="pdResumoBody"></div>
-    <div class="pd-modal-foot">
-      <button class="pd-modal-btn pd-modal-cancelar" id="pdResumoEditar">← EDITAR</button>
-      <button class="pd-modal-btn pd-modal-ok" id="pdResumoEnviar">📱 ENVIAR WHATSAPP</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODAL AVISO ============ -->
-<div class="pd-modal" id="pdModalAviso">
-  <div class="pd-modal-box pd-modal-box-aviso">
-    <div class="pd-modal-icon">⏰</div>
-    <h2 class="pd-modal-title">ATENÇÃO — TEMPO LIMITE</h2>
-    <p class="pd-modal-text">
-      Após clicares em <b>ENTENDI</b>, o teu pedido vai começar a ser preparado. Tens até <b>40 MINUTOS</b> para receber ou levantar.
-    </p>
-
-    <div class="pd-modal-estacao">
-      <div class="pd-modal-estacao-icon">🍗</div>
-      <div>
-        <b>Frango Dourado</b>
-        <small>Quelimane, Moçambique</small>
+      <div class="pd-field">
+        <label>Escolha o Entregador</label>
+        <div id="pdEntregadores"></div>
       </div>
     </div>
+  </section>
 
-    <p class="pd-modal-text pd-modal-destaque">
-      Apresenta este pedido no restaurante.
-    </p>
+  <section class="checkout-section">
+    <h2>2. Os seus dados</h2>
+    <div class="pd-field">
+      <label>Nome Completo</label>
+      <input type="text" id="pdNomeCliente" placeholder="O seu nome"/>
+    </div>
+    <div class="pd-field">
+      <label>Telefone (WhatsApp)</label>
+      <input type="tel" id="pdTelefone" placeholder="Ex.: 84XXXXXXX"/>
+    </div>
+    <div class="pd-field">
+      <label>Observações (Opcional)</label>
+      <textarea id="pdObs" rows="2" placeholder="Ex.: Sem piri-piri, troco para 500..."></textarea>
+    </div>
+  </section>
 
-    <div class="pd-modal-botoes">
-      <button class="pd-modal-btn pd-modal-cancelar" id="pdModalAvisoCancelar">Cancelar</button>
-      <button class="pd-modal-btn pd-modal-ok" id="pdModalAvisoOk">ENTENDI ✓</button>
+  <button class="pd-btn-final" id="pdVerResumo" disabled>VER RESUMO →</button>
+</main>
+
+<!-- MODAL RESUMO -->
+<div class="modal-resumo" id="pdModalResumo">
+  <div class="modal-box">
+    <h2>Resumo do Pedido</h2>
+    <div id="pdResumoBody" style="margin-bottom:20px;"></div>
+    <div style="display:flex; gap:10px;">
+      <button onclick="document.getElementById('pdModalResumo').classList.remove('active')" style="flex:1; padding:15px; border-radius:12px; border:none; background:#eee; font-weight:700; cursor:pointer;">Editar</button>
+      <button id="pdResumoEnviar" style="flex:2; padding:15px; border-radius:12px; border:none; background:var(--primaria); color:white; font-weight:800; cursor:pointer;">Enviar p/ WhatsApp</button>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/checkout.js"></script>
 </body>

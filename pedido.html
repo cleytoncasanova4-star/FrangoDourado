@@ -4,14 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <title>Pedir — Frango Dourado</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/pedido.css"/>
 </head>
 <body>
 
-<!-- ============ HEADER ============ -->
 <header class="pd-header">
   <div class="pd-inner">
     <a href="index.html" class="pd-brand">
@@ -27,14 +23,12 @@
           <ellipse cx="30" cy="28" rx="16" ry="14" fill="url(#frangoGradPed)"/>
           <circle cx="30" cy="14" r="8" fill="url(#frangoGradPed)"/>
           <path d="M24 8 L26 4 L28 8 L30 3 L32 8 L34 4 L36 8" stroke="#E30613" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          <path d="M36 14 L42 15 L36 17 Z" fill="#E30613"/>
-          <circle cx="32" cy="13" r="1.2" fill="#2A1408"/>
         </svg>
       </div>
-      <div class="pd-brand-text">
-        <b>FRANGO <span>DOURADO</span></b>
-        <small>PEDIR AGORA</small>
-      </div>
+     <div class="pd-brand-text">
+  <b>FRANGO <span style="color: #FFB800;">DOURADO</span></b>
+  <small>PEDIR AGORA</small>
+</div>
     </a>
 
     <div class="pd-header-actions">
@@ -46,102 +40,51 @@
   </div>
 </header>
 
-<!-- ============ MAIN ============ -->
 <main class="pd-main">
-
   <div class="pd-titulo">
     <h1>O que vai pedir hoje?</h1>
-    <p>Toque nos itens para adicionar ao carrinho 🛒</p>
+    <p>Toque no botão + para adicionar ao carrinho.</p>
   </div>
 
-  <!-- CATEGORIA: PRATOS -->
+  <!-- CATEGORIAS (OS IDs AQUI SÃO CRUCIAIS) -->
   <section class="pd-section">
-    <h2>🍗 Pratos</h2>
-    <div class="pd-menu-grid" id="pdCatPratos"></div>
+    <h2>🍔 Hamburgers</h2>
+    <div class="pd-menu-grid" id="pdCatHamburgers"></div>
   </section>
 
-  <!-- CATEGORIA: ACOMPANHAMENTOS -->
+  <section class="pd-section">
+    <h2>🍗 Frango & Wraps</h2>
+    <div class="pd-menu-grid" id="pdCatFrango"></div>
+  </section>
+
   <section class="pd-section">
     <h2>🍟 Acompanhamentos</h2>
     <div class="pd-menu-grid" id="pdCatAcompanhamentos"></div>
   </section>
 
-  <!-- CATEGORIA: REFRIGERANTES -->
   <section class="pd-section">
     <h2>🥤 Refrigerantes</h2>
     <div class="pd-menu-grid" id="pdCatRefrigerantes"></div>
   </section>
-
 </main>
 
-<!-- ============ CARRINHO (gaveta) ============ -->
+<!-- O MINI CARRINHO LATERAL -->
 <div class="pd-cart-overlay" id="pdCartOverlay"></div>
 <aside class="pd-cart-drawer" id="pdCartDrawer">
   <div class="pd-cart-head">
     <h2>🛒 O seu carrinho</h2>
     <button class="pd-cart-close" id="pdCartClose">✕</button>
   </div>
-
-  <div class="pd-cart-body" id="pdCartBody">
-    <p class="pd-cart-empty">O carrinho está vazio.</p>
-  </div>
-
-  <div class="pd-cart-foot" id="pdCartFoot">
+  <div class="pd-cart-body" id="pdCartBody"></div>
+  <div class="pd-cart-foot">
     <div class="pd-cart-total">
       <span>Subtotal</span>
       <b id="pdCartTotal">0 MT</b>
     </div>
-    <button class="pd-cart-checkout" id="pdCartCheckout" disabled>
-      CONTINUAR →
-    </button>
+    <button class="pd-cart-checkout" id="pdCartCheckout" disabled>CONTINUAR →</button>
   </div>
 </aside>
 
-
-<!-- ============ MODAL RESUMO ============ -->
-<div class="pd-modal" id="pdModalResumo">
-  <div class="pd-modal-box">
-    <div class="pd-modal-head">
-      <h2>📋 Resumo do pedido</h2>
-      <button class="pd-modal-close" id="pdModalResumoClose">✕</button>
-    </div>
-    <div class="pd-modal-body" id="pdResumoBody"></div>
-    <div class="pd-modal-foot">
-      <button class="pd-modal-btn pd-modal-cancelar" id="pdResumoEditar">← EDITAR</button>
-      <button class="pd-modal-btn pd-modal-ok" id="pdResumoEnviar">📱 ENVIAR WHATSAPP</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODAL AVISO FINAL ============ -->
-<div class="pd-modal" id="pdModalAviso">
-  <div class="pd-modal-box">
-    <div class="pd-modal-icon">⏰</div>
-    <h2 class="pd-modal-title">ATENÇÃO — TEMPO LIMITE</h2>
-    <p class="pd-modal-text">
-      Após clicares em <b>ENTENDI</b>, tens até <b>40 MINUTOS</b> para o teu pedido ser entregue ou levantado.
-    </p>
-
-    <div class="pd-modal-estacao">
-      <div class="pd-modal-estacao-icon">🍗</div>
-      <div>
-        <b>Frango Dourado</b>
-        <small>Av. Marginal, Quelimane</small>
-      </div>
-    </div>
-
-    <p class="pd-modal-text pd-modal-destaque">
-      Apresenta este pedido no restaurante.
-    </p>
-
-    <div class="pd-modal-botoes">
-      <button class="pd-modal-btn pd-modal-cancelar" id="pdModalAvisoCancelar">Cancelar</button>
-      <button class="pd-modal-btn pd-modal-ok" id="pdModalAvisoOk">ENTENDI ✓</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/pedido.js"></script>
 </body>
