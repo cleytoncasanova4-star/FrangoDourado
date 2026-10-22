@@ -15,14 +15,21 @@ const CONFIG = {
     ]
   },
   entregadores: [
-    { id: "ent_1", nome: "João Silva", telefone: "840000001" },
-    { id: "ent_2", nome: "Maria Macuácua", telefone: "840000002" }
+    { id: "ent_1", nome: "Cleyton Casanova",
+       telefone: "871632577",
+      foto: "assets/images/cleyton.jpg" 
+    },
+    { id: "ent_2", nome: "Ivota Antonio",
+       telefone: "871632577",
+      foto: "assets/images/casanova.jpg" 
+    }
   ],
   admin: {
     user: "frango",
     pass: "dourado2025"
   }
 };
+
 
 const PRODUTOS_PADRAO = [
   // HAMBURGERS
@@ -48,6 +55,10 @@ const PRODUTOS_PADRAO = [
    { id: "r4", cat: "refrigerantes", nome: "Laurentina Preta", preco: 50, icon: "💧", img: "assets/images/vumba.jpg", desc: "Água sem gás", disponivel: true },
     { id: "r3", cat: "refrigerantes", nome: "Água Mineral 500ml", preco: 50, icon: "💧", img: "assets/images/agua2.jpg", desc: "Água sem gás", disponivel: true }
 ];
+CONFIG.supabase = {
+  url: "https://hqlxwegzkllpvqwwzhhw.supabase.co", 
+  key: "sb_publishable_DaVPlT1yggN8BHbBHxvx0g_-pZ4zb-c" 
+};
 
 // Força a atualização dos produtos no browser
 localStorage.setItem('frango_produtos', JSON.stringify(PRODUTOS_PADRAO));

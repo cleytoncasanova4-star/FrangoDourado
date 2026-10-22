@@ -15,7 +15,7 @@ body { background: var(--fundo); color: var(--texto); padding-bottom: 50px; }
 
 .pd-header { background: var(--card); padding: 15px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(255,184,0,0.1); border-bottom: 2px solid var(--dourado-claro); }
 .pd-inner { max-width: 800px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-.pd-brand-text b { font-family: 'Rajdhani'; font-size: 22px; }
+.pd-brand-text b { font-family: 'Rajdhani'; font-size: 22px; color: var(--texto); }
 .pd-brand-text b span { color: var(--primaria); }
 .pd-voltar { font-size: 14px; font-weight: 600; color: var(--texto-leve); text-decoration: none; }
 
@@ -39,7 +39,7 @@ body { background: var(--fundo); color: var(--texto); padding-bottom: 50px; }
 .pd-modo-inner b { font-size: 15px; font-weight: 800; color: var(--texto); }
 .pd-modo-inner small { font-size: 12px; color: var(--texto-leve); }
 
-/* ZONAS E ENTREGADORES (Cartões) */
+/* ZONAS E ENTREGADORES */
 .pd-option, .pd-entregador { display: flex; align-items: center; gap: 15px; padding: 15px; border: 2px solid #f0f0f0; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; background: white; }
 .pd-option.selected, .pd-entregador.selected { border-color: var(--dourado); background: var(--dourado-claro); }
 .pd-option-icon { font-size: 24px; }
@@ -59,3 +59,118 @@ body { background: var(--fundo); color: var(--texto); padding-bottom: 50px; }
 .modal-box h2 { color: var(--texto); margin-bottom: 15px; font-family: 'Rajdhani'; font-size: 22px; }
 .resumo-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
 .resumo-total { display: flex; justify-content: space-between; padding-top: 15px; font-weight: 800; font-size: 18px; color: var(--primaria); }
+/* ... (mantém o que já tens em cima) ... */
+
+/* CARTÃO DE DADOS DO ENTREGADOR */
+.entregador-info-card {
+  background: #E8F5E9; /* Fundo verde suave para indicar "Disponível" */
+  border: 1px solid #4CAF50;
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 10px;
+  display: none; /* Escondido até o utilizador escolher */
+  align-items: center;
+  gap: 15px;
+  animation: fadeIn 0.3s ease;
+}
+.entregador-info-card.active { display: flex; }
+.entregador-info-card .avatar {
+  width: 50px; height: 50px; background: white; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; border: 2px solid #4CAF50;
+}
+.entregador-info-card .detalhes b { display: block; font-size: 16px; color: #2E7D32; margin-bottom: 3px; }
+.entregador-info-card .detalhes span { font-size: 14px; color: #1B5E20; font-weight: 700; }
+.entregador-info-card a {
+  margin-left: auto;
+  background: #2E7D32; color: white; text-decoration: none;
+  padding: 8px 12px; border-radius: 8px; font-weight: 800; font-size: 13px;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ... (mantém o que já tens em cima) ... */
+
+/* CARTÃO DO ENTREGADOR */
+.entregador-info-card {
+  background: #F0FDF4; /* Verde bem clarinho */
+  border: 1px solid #86EFAC;
+  border-radius: 16px;
+  padding: 15px;
+  margin-top: 15px;
+  display: none; 
+  align-items: center;
+  gap: 15px;
+  animation: fadeIn 0.3s ease;
+}
+.entregador-info-card.active { display: flex; }
+
+/* FOTO REDONDA */
+.avatar-entregador {
+  width: 60px; 
+  height: 60px; 
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #22C55E;
+  cursor: pointer;
+  transition: transform 0.2s;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #555;
+}
+.avatar-entregador:hover { transform: scale(1.1); }
+
+.entregador-info-card .detalhes { flex: 1; }
+.entregador-info-card .detalhes b { display: block; font-size: 16px; color: #166534; margin-bottom: 3px; }
+.entregador-info-card .detalhes span { font-size: 14px; color: #15803D; font-weight: 600; }
+
+.btn-zap-entregador {
+  background: #25D366; 
+  color: white; 
+  text-decoration: none;
+  padding: 10px 15px; 
+  border-radius: 10px; 
+  font-weight: 800; 
+  font-size: 13px;
+  display: flex; 
+  align-items: center; 
+  gap: 5px;
+  box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
+}
+
+/* MODAL DE ZOOM DA FOTO */
+.modal-zoom {
+  display: none; 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,0.85); 
+  backdrop-filter: blur(5px);
+  z-index: 10000; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 20px;
+}
+.modal-zoom.active { display: flex; }
+.zoom-container { position: relative; max-width: 400px; width: 100%; text-align: center; }
+.zoom-container img { 
+  width: 100%; 
+  border-radius: 20px; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+  animation: zoomIn 0.3s ease; 
+}
+.zoom-close { 
+  position: absolute; 
+  top: -40px; 
+  right: 0; 
+  background: none; 
+  border: none; 
+  color: white; 
+  font-size: 30px; 
+  cursor: pointer; 
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }

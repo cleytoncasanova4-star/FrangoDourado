@@ -2,23 +2,28 @@ const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 let carrinho = JSON.parse(localStorage.getItem('frango_carrinho')) || [];
 
+let supabaseClient = null;
+try {
+  if (window.supabase && CONFIG.supabase) {
+    supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.key);
+  }
+} catch(e) { console.error("Erro Supabase", e); }
+
 let modoAtual = 'entrega';
 let zonaSelecionada = null;
 let entregadorSelecionado = null;
 
 if(carrinho.length === 0) {
-  alert('Carrinho vazio!');
+  alert('O seu carrinho está vazio!');
   window.location.href = 'pedido.html';
 }
 
-// INIT
 document.addEventListener('DOMContentLoaded', () => {
   renderZonas();
   renderEntregadores();
   validarBotao();
 });
 
-// TOGGLE ENTREGA/RETIRADA
 function toggleModo() {
   const radios = document.getElementsByName('pd-modo');
   for(let r of radios) { if(r.checked) modoAtual = r.value; }
@@ -28,17 +33,20 @@ function toggleModo() {
     campos.style.display = 'none';
     zonaSelecionada = null;
     entregadorSelecionado = null;
+    $$('.pd-option').forEach(el => el.classList.remove('selected'));
+    $$('.pd-entregador').forEach(el => el.classList.remove('selected'));
+    if($('#entregadorCard')) $('#entregadorCard').classList.remove('active');
   } else {
     campos.style.display = 'block';
   }
   validarBotao();
 }
 
-// RENDERIZAR ZONAS
+// ZONAS
 function renderZonas() {
   const div = $('#pdZonas');
   div.innerHTML = CONFIG.entrega.zonas.map(z => `
-    <div class="pd-option" onclick="selecionarZona('${z.id}')">
+    <div class="pd-option" onclick="selecionarZona('${z.id}', this)">
       <span class="pd-option-icon">📍</span>
       <div class="pd-option-info">
         <b>${z.nome}</b>
@@ -49,32 +57,97 @@ function renderZonas() {
   `).join('');
 }
 
-function selecionarZona(id) {
+function selecionarZona(id, el) {
   zonaSelecionada = CONFIG.entrega.zonas.find(z => z.id === id);
-  $$('#pdZonas .pd-option').forEach(el => el.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  $$('#pdZonas .pd-option').forEach(item => item.classList.remove('selected'));
+  el.classList.add('selected');
   validarBotao();
 }
 
-// RENDERIZAR ENTREGADORES
+// ENTREGADORES COM FOTO E ZOOM
 function renderEntregadores() {
   const div = $('#pdEntregadores');
-  div.innerHTML = CONFIG.entregadores.map(e => `
-    <div class="pd-entregador" onclick="selecionarEntregador('${e.id}')">
-      <div class="pd-entregador-avatar">🧑‍🦱</div>
-      <div class="pd-entregador-info">
-        <b>${e.nome}</b>
-        <small>Disponível</small>
+  
+  // Cria a lista de entregadores
+  div.innerHTML = CONFIG.entregadores.map(e => {
+    // Se não houver foto, mostra as iniciais num círculo
+    const fotoHtml = e.foto 
+      ? `<img src="${e.foto}" class="avatar-entregador" onclick="abrirZoom(event, '${e.foto}', '${e.nome}')" onerror="this.outerHTML='<div class=\\'avatar-entregador\\'>${e.nome.charAt(0)}</div>'">`
+      : `<div class="avatar-entregador">${e.nome.charAt(0)}</div>`;
+
+    return `
+      <div class="pd-entregador" onclick="selecionarEntregador('${e.id}', this)">
+        ${fotoHtml}
+        <div class="pd-entregador-info">
+          <b>${e.nome}</b>
+          <small>Toque para escolher</small>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Adicionar a caixa de detalhes do entregador escondida
+  div.innerHTML += `
+    <div class="entregador-info-card" id="entregadorCard">
+      <img id="cardFotoEntregador" class="avatar-entregador" src="" onclick="abrirZoomCard()">
+      <div class="detalhes">
+        <b id="txtEntregadorNome">Nome</b>
+        <span id="txtEntregadorTel" style="color: #15803D; font-weight: 700; margin-top: 4px; display: block;">📱 Telefone</span>
       </div>
     </div>
-  `).join('');
+  `;
 }
 
-function selecionarEntregador(id) {
+function selecionarEntregador(id, el) {
   entregadorSelecionado = CONFIG.entregadores.find(e => e.id === id);
-  $$('#pdEntregadores .pd-entregador').forEach(el => el.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  $$('#pdEntregadores .pd-entregador').forEach(item => item.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Preencher os dados do entregador no cartão verde
+  const card = $('#entregadorCard');
+  const img = $('#cardFotoEntregador');
+  
+  if(entregadorSelecionado.foto) {
+    img.src = entregadorSelecionado.foto;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+
+  $('#txtEntregadorNome').textContent = entregadorSelecionado.nome;
+  $('#txtEntregadorTel').textContent = `📱 ${entregadorSelecionado.telefone}`;
+  //$('#btnLigarEntregador').href = `https://wa.me/258${entregadorSelecionado.telefone}`; // Abre WhatsApp
+  //$('#btnLigarEntregador').target = "_blank";
+  
+  card.classList.add('active');
   validarBotao();
+}
+
+// ZOOM NA FOTO
+function abrirZoom(event, url, nome) {
+  // Não bloqueia o clique, para ele também selecionar o entregador
+  const idEntregador = CONFIG.entregadores.find(e => e.nome === nome).id;
+  const cardEntregador = event.target.closest('.pd-entregador');
+  
+  // Seleciona o entregador automaticamente ao clicar na foto
+  if (cardEntregador) {
+    selecionarEntregador(idEntregador, cardEntregador);
+  }
+
+  // Abre o zoom
+  $('#imgZoomEntregador').src = url;
+  $('#nomeZoomEntregador').textContent = nome;
+  $('#modalZoomEntregador').classList.add('active');
+}
+function abrirZoomCard() {
+  if(entregadorSelecionado && entregadorSelecionado.foto) {
+    $('#imgZoomEntregador').src = entregadorSelecionado.foto;
+    $('#nomeZoomEntregador').textContent = entregadorSelecionado.nome;
+    $('#modalZoomEntregador').classList.add('active');
+  }
+}
+function fecharZoom() {
+  $('#modalZoomEntregador').classList.remove('active');
 }
 
 // VALIDAÇÃO
@@ -85,16 +158,18 @@ function validarBotao() {
   
   let ok = true;
   if(!nome || !tel) ok = false;
-  if(modoAtual === 'entrega') {
-    if(!zonaSelecionada || !entregadorSelecionado || !$('#pdEndereco').value.trim()) ok = false;
-  }
   
+  if(modoAtual === 'entrega') {
+    const endereco = $('#pdEndereco').value.trim();
+    const referencia = $('#pdReferencia').value.trim();
+    if(!zonaSelecionada || !entregadorSelecionado || !endereco || !referencia) ok = false;
+  }
   btn.disabled = !ok;
 }
 
 document.addEventListener('input', validarBotao);
 
-// RESUMO E WHATSAPP
+// RESUMO E ENVIO
 $('#pdVerResumo').addEventListener('click', () => {
   const sub = carrinho.reduce((s, x) => s + (x.preco * x.qtd), 0);
   let taxa = 0;
@@ -102,7 +177,7 @@ $('#pdVerResumo').addEventListener('click', () => {
 
   if(modoAtual === 'entrega') {
     taxa = (sub >= CONFIG.entrega.gratisAcimaDe) ? 0 : zonaSelecionada.valor;
-    infoEntrega = `Entrega (${zonaSelecionada.nome}) - Entregador: ${entregadorSelecionado.nome}`;
+    infoEntrega = `Entrega (${zonaSelecionada.nome})`;
   } else {
     taxa = CONFIG.entrega.levantamento;
   }
@@ -119,22 +194,60 @@ $('#pdVerResumo').addEventListener('click', () => {
     <div class="resumo-total"><span>TOTAL</span><b>${total} MT</b></div>
   `;
 
+  if(modoAtual === 'entrega') {
+    html += `
+      <div style="margin-top:15px; padding:10px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; font-size:13px; color:#166534;">
+        <b>Entregador:</b> ${entregadorSelecionado.nome} <br>
+        <b>Contacto:</b> ${entregadorSelecionado.telefone}
+      </div>
+    `;
+  }
+
   $('#pdResumoBody').innerHTML = html;
   $('#pdModalResumo').classList.add('active');
 
-  // Configurar envio do WhatsApp
-  $('#pdResumoEnviar').onclick = () => {
+  // ENVIAR PARA O SUPABASE E WHATSAPP
+  $('#pdResumoEnviar').onclick = async () => {
+    const btn = $('#pdResumoEnviar');
+    btn.textContent = "A enviar...";
+    btn.disabled = true;
+
+    const pedido = {
+      cliente: $('#pdNomeCliente').value,
+      telefone: $('#pdTelefone').value,
+      itens_texto: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(', '),
+      subtotal: sub,
+      modo: modoAtual,
+      zona: modoAtual === 'entrega' ? zonaSelecionada.nome : 'Retirada',
+      endereco: modoAtual === 'entrega' ? $('#pdEndereco').value : '',
+      referencia: modoAtual === 'entrega' ? $('#pdReferencia').value : '',
+      entregador_nome: modoAtual === 'entrega' ? entregadorSelecionado.nome : '',
+      entregador_telefone: modoAtual === 'entrega' ? entregadorSelecionado.telefone : '',
+      taxa: taxa,
+      total: total,
+      status: 'PENDENTE'
+    };
+
+    if(supabaseClient) {
+      const { error } = await supabaseClient.from('pedidos_frango').insert([pedido]);
+      if(error) alert("Erro ao gravar no sistema. Mas pode enviar pelo WhatsApp.");
+    }
+
     let msg = `*NOVO PEDIDO - FRANGO DOURADO*\n\n`;
-    msg += `*Cliente:* ${$('#pdNomeCliente').value}\n`;
-    msg += `*Telefone:* ${$('#pdTelefone').value}\n\n`;
-    msg += `*ITENS:*\n`;
+    msg += `*Cliente:* ${pedido.cliente}\n*Telefone:* ${pedido.telefone}\n\n`;
     carrinho.forEach(i => { msg += `- ${i.qtd}x ${i.nome} (${i.preco * i.qtd} MT)\n`; });
     msg += `\n*Modo:* ${infoEntrega}\n`;
-    if(modoAtual === 'entrega') msg += `*Endereço:* ${$('#pdEndereco').value}\n`;
-    msg += `*Taxa:* ${taxa} MT\n`;
+    if(modoAtual === 'entrega') {
+      msg += `*Endereço:* ${pedido.endereco}\n`;
+      msg += `*Referência:* ${pedido.referencia}\n`;
+      msg += `*Entregador:* ${pedido.entregador_nome} (${pedido.entregador_telefone})\n`;
+    }
     msg += `*TOTAL:* ${total} MT\n`;
+    if($('#pdObs').value) msg += `\n*Obs:* ${$('#pdObs').value}`;
     
     window.open(`https://wa.me/${CONFIG.empresa.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+    
     localStorage.removeItem('frango_carrinho');
+    window.location.href = 'index.html';
   };
 });

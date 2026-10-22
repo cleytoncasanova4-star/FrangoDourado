@@ -184,3 +184,8 @@ footer { text-align: center; padding: 40px; background: var(--escuro); color: #8
   .footer-brand p { margin: 0 auto; }
   .footer-contact { align-items: center; }
 }
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}

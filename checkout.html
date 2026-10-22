@@ -2,15 +2,18 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Finalizar Pedido — Frango Dourado</title>
 <link rel="stylesheet" href="css/checkout.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
 <header class="pd-header">
   <div class="pd-inner">
-    <div class="pd-brand-text"><b>FRANGO <span>DOURADO</span></b></div>
+    <div class="pd-brand-text">
+      <b>FRANGO <span>DOURADO</span></b>
+    </div>
     <a href="pedido.html" class="pd-voltar">← Voltar ao menu</a>
   </div>
 </header>
@@ -18,9 +21,10 @@
 <main class="pd-main">
   <div style="text-align: center; margin-bottom: 20px;">
     <h1 style="font-family: 'Rajdhani'; font-size: 26px; color: var(--texto);">Finalizar Pedido</h1>
-    <p style="color: var(--texto-leve); font-size: 14px;">Escolha como quer receber a sua encomenda.</p>
+    <p style="color: var(--texto-leve); font-size: 14px;">Preencha os dados para receber em casa.</p>
   </div>
 
+  <!-- MODO DE ENTREGA -->
   <section class="checkout-section">
     <h2>1. Como quer receber?</h2>
     <div class="pd-modos">
@@ -42,7 +46,7 @@
       </label>
     </div>
 
-    <!-- CAMPOS SÓ PARA ENTREGA -->
+    <!-- CAMPOS EXCLUSIVOS DE ENTREGA -->
     <div id="pdFieldsEntrega">
       <div class="pd-field">
         <label>Escolha a sua Zona</label>
@@ -54,6 +58,12 @@
         <input type="text" id="pdEndereco" placeholder="Ex.: Bairro, rua, número"/>
       </div>
 
+      <!-- NOVO CAMPO: PONTO DE REFERÊNCIA -->
+      <div class="pd-field">
+        <label>Ponto de Encontro</label>
+        <input type="text" id="pdReferencia" placeholder="Ex.: Próximo à farmácia, portão azul..."/>
+      </div>
+
       <div class="pd-field">
         <label>Escolha o Entregador</label>
         <div id="pdEntregadores"></div>
@@ -61,6 +71,7 @@
     </div>
   </section>
 
+  <!-- DADOS DO CLIENTE -->
   <section class="checkout-section">
     <h2>2. Os seus dados</h2>
     <div class="pd-field">
@@ -89,6 +100,15 @@
       <button onclick="document.getElementById('pdModalResumo').classList.remove('active')" style="flex:1; padding:15px; border-radius:12px; border:none; background:#eee; font-weight:700; cursor:pointer;">Editar</button>
       <button id="pdResumoEnviar" style="flex:2; padding:15px; border-radius:12px; border:none; background:var(--primaria); color:white; font-weight:800; cursor:pointer;">Enviar p/ WhatsApp</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL DE ZOOM DA FOTO DO ENTREGADOR -->
+<div class="modal-zoom" id="modalZoomEntregador">
+  <div class="zoom-container">
+    <button class="zoom-close" onclick="fecharZoom()">✕</button>
+    <img id="imgZoomEntregador" src="" alt="Foto do Entregador">
+    <h3 id="nomeZoomEntregador" style="color: white; margin-top: 15px; text-align: center; font-family: 'Rajdhani';"></h3>
   </div>
 </div>
 

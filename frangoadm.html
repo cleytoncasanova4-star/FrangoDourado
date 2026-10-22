@@ -29,12 +29,7 @@
 
   <main class="admin-content">
 
-    <section class="panel">
-      <h2>🍗 Disponibilidade do Menu</h2>
-      <p class="hint">Liga ou desliga cada item</p>
-      <div id="switchList" class="switch-list"></div>
-    </section>
-
+    <!-- PEDIDOS PENDENTES -->
     <section class="panel">
       <div class="panel-head">
         <h2>⏳ Pedidos Pendentes</h2>
@@ -46,23 +41,22 @@
       </div>
     </section>
 
+    <!-- EXTRATO -->
     <section class="panel panel-extrato">
       <div class="panel-head">
-        <h2>📊 Extrato Completo</h2>
+        <h2>📊 Extrato de Pedidos</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="count-badge green" id="totalRegistos">0 registos</span>
-          <button id="imprimirExtrato" class="btn-imprimir">🖨️ Extrato</button>
-          <button id="imprimirMini" class="btn-imprimir">🖨️ Recibos Mini</button>
+          <button id="imprimirExtrato" class="btn-imprimir">🖨️ Extrato Completo</button>
           <button id="fecharDia" class="btn-fechar-dia">📅 Fechar o Dia</button>
-          <button id="apagarTudo" class="btn-apagar-tudo">🗑️ Apagar Tudo</button>
         </div>
       </div>
 
+      <!-- Filtros (Removi o "Cancelados") -->
       <div class="filtros">
         <button class="filtro-btn active" data-filtro="todos">📋 Todos</button>
         <button class="filtro-btn" data-filtro="PENDENTE">⏳ Pendentes</button>
         <button class="filtro-btn" data-filtro="ENTREGUE">✅ Entregues</button>
-        <button class="filtro-btn" data-filtro="CANCELADO">❌ Cancelados</button>
       </div>
 
       <div class="table-excel-wrap">
