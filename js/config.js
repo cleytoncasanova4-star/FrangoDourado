@@ -15,21 +15,29 @@ const CONFIG = {
     ]
   },
   entregadores: [
-    { id: "ent_1", nome: "Cleyton Casanova",
-       telefone: "871632577",
+    { 
+      id: "ent_1", 
+      nome: "Cleyton Casanova",
+      telefone: "871632577",
       foto: "assets/images/cleyton.jpg" 
     },
-    { id: "ent_2", nome: "Ivota Antonio",
-       telefone: "871632577",
+    { 
+      id: "ent_2", 
+      nome: "Ivota Antonio",
+      telefone: "871632577",
       foto: "assets/images/casanova.jpg" 
     }
   ],
   admin: {
     user: "frango",
     pass: "dourado2025"
+  },
+  // Configuração do Banco de Dados movida para dentro do CONFIG
+  supabase: {
+    url: "https://sigeclvywhuqwmrhabkw.supabase.co",
+    key: "sb_publishable_g_5OUJcLY124VZEAP3-l0g_5nLLr4LT" 
   }
 };
-
 
 const PRODUTOS_PADRAO = [
   // HAMBURGERS
@@ -43,22 +51,18 @@ const PRODUTOS_PADRAO = [
   { id: "f3", cat: "frango", nome: "Asa de Coxa", preco: 190, icon: "🍗", img: "assets/images/frango3.jpg", desc: "Porção de asas grelhadas", disponivel: true },
   { id: "w1", cat: "frango", nome: "Wrap de Carne", preco: 180, icon: "🌯", img: "assets/images/comida8.jpg", desc: "Tortilha com carne, queijo e molho", disponivel: true },
 
-  // ACOMPANHAMENTOS
+  // ACOMPANHAMENTOS (IDs corrigidos e únicos)
   { id: "a1", cat: "acompanhamentos", nome: "Batata Frita Grande", preco: 120, icon: "🍟", img: "assets/images/batatas1.jpg", desc: "Porção grande e crocante", disponivel: true },
-  { id: "a1", cat: "acompanhamentos", nome: "Batata Frita Dourada", preco: 150, icon: "🍟", img: "assets/images/batatas2.jpg", desc: "Porção grande e crocante", disponivel: true },
-  { id: "a2", cat: "acompanhamentos", nome: "Arroz Frito", preco: 220, icon: "🍚", img: "assets/images/comida8.jpg", desc: "Arroz frito especial da casa", disponivel: true },
+  { id: "a2", cat: "acompanhamentos", nome: "Batata Frita Dourada", preco: 150, icon: "🍟", img: "assets/images/batatas2.jpg", desc: "Porção grande e crocante", disponivel: true },
+  { id: "a3", cat: "acompanhamentos", nome: "Arroz Frito", preco: 220, icon: "🍚", img: "assets/images/comida8.jpg", desc: "Arroz frito especial da casa", disponivel: true },
   
-  // REFRIGERANTES
+  // REFRIGERANTES (IDs corrigidos e únicos)
   { id: "r1", cat: "refrigerantes", nome: "Coca-Cola 330ml", preco: 60, icon: "🥤", img: "assets/images/refresco1.jpg", desc: "Bem gelada", disponivel: true },
   { id: "r2", cat: "refrigerantes", nome: "Fanta Laranja 330ml", preco: 60, icon: "🥤", img: "assets/images/refresco2.jpg", desc: "Bem gelada", disponivel: true },
   { id: "r3", cat: "refrigerantes", nome: "Água Mineral 500ml", preco: 40, icon: "💧", img: "assets/images/refresco3.jpg", desc: "Água sem gás", disponivel: true },
-   { id: "r4", cat: "refrigerantes", nome: "Laurentina Preta", preco: 50, icon: "💧", img: "assets/images/vumba.jpg", desc: "Água sem gás", disponivel: true },
-    { id: "r3", cat: "refrigerantes", nome: "Água Mineral 500ml", preco: 50, icon: "💧", img: "assets/images/agua2.jpg", desc: "Água sem gás", disponivel: true }
+  { id: "r4", cat: "refrigerantes", nome: "Laurentina Preta", preco: 50, icon: "🍺", img: "assets/images/vumba.jpg", desc: "Cerveja bem gelada", disponivel: true },
+  { id: "r5", cat: "refrigerantes", nome: "Água Vumba 500ml", preco: 50, icon: "💧", img: "assets/images/agua2.jpg", desc: "Água sem gás", disponivel: true }
 ];
-CONFIG.supabase = {
-  url: "https://hqlxwegzkllpvqwwzhhw.supabase.co", 
-  key: "sb_publishable_DaVPlT1yggN8BHbBHxvx0g_-pZ4zb-c" 
-};
 
 // Força a atualização dos produtos no browser
 localStorage.setItem('frango_produtos', JSON.stringify(PRODUTOS_PADRAO));

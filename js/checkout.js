@@ -64,13 +64,11 @@ function selecionarZona(id, el) {
   validarBotao();
 }
 
-// ENTREGADORES COM FOTO E ZOOM
+// ENTREGADORES
 function renderEntregadores() {
   const div = $('#pdEntregadores');
   
-  // Cria a lista de entregadores
   div.innerHTML = CONFIG.entregadores.map(e => {
-    // Se não houver foto, mostra as iniciais num círculo
     const fotoHtml = e.foto 
       ? `<img src="${e.foto}" class="avatar-entregador" onclick="abrirZoom(event, '${e.foto}', '${e.nome}')" onerror="this.outerHTML='<div class=\\'avatar-entregador\\'>${e.nome.charAt(0)}</div>'">`
       : `<div class="avatar-entregador">${e.nome.charAt(0)}</div>`;
@@ -86,7 +84,6 @@ function renderEntregadores() {
     `;
   }).join('');
 
-  // Adicionar a caixa de detalhes do entregador escondida
   div.innerHTML += `
     <div class="entregador-info-card" id="entregadorCard">
       <img id="cardFotoEntregador" class="avatar-entregador" src="" onclick="abrirZoomCard()">
@@ -103,7 +100,6 @@ function selecionarEntregador(id, el) {
   $$('#pdEntregadores .pd-entregador').forEach(item => item.classList.remove('selected'));
   el.classList.add('selected');
 
-  // Preencher os dados do entregador no cartão verde
   const card = $('#entregadorCard');
   const img = $('#cardFotoEntregador');
   
@@ -116,25 +112,17 @@ function selecionarEntregador(id, el) {
 
   $('#txtEntregadorNome').textContent = entregadorSelecionado.nome;
   $('#txtEntregadorTel').textContent = `📱 ${entregadorSelecionado.telefone}`;
-  //$('#btnLigarEntregador').href = `https://wa.me/258${entregadorSelecionado.telefone}`; // Abre WhatsApp
-  //$('#btnLigarEntregador').target = "_blank";
   
   card.classList.add('active');
   validarBotao();
 }
 
-// ZOOM NA FOTO
 function abrirZoom(event, url, nome) {
-  // Não bloqueia o clique, para ele também selecionar o entregador
+  event.stopPropagation();
   const idEntregador = CONFIG.entregadores.find(e => e.nome === nome).id;
   const cardEntregador = event.target.closest('.pd-entregador');
-  
-  // Seleciona o entregador automaticamente ao clicar na foto
-  if (cardEntregador) {
-    selecionarEntregador(idEntregador, cardEntregador);
-  }
+  if (cardEntregador) selecionarEntregador(idEntregador, cardEntregador);
 
-  // Abre o zoom
   $('#imgZoomEntregador').src = url;
   $('#nomeZoomEntregador').textContent = nome;
   $('#modalZoomEntregador').classList.add('active');
@@ -146,9 +134,7 @@ function abrirZoomCard() {
     $('#modalZoomEntregador').classList.add('active');
   }
 }
-function fecharZoom() {
-  $('#modalZoomEntregador').classList.remove('active');
-}
+function fecharZoom() { $('#modalZoomEntregador').classList.remove('active'); }
 
 // VALIDAÇÃO
 function validarBotao() {
@@ -171,6 +157,7 @@ document.addEventListener('input', validarBotao);
 
 // RESUMO E ENVIO
 $('#pdVerResumo').addEventListener('click', () => {
+  // 1. MATEMÁTICA CORRETA
   const sub = carrinho.reduce((s, x) => s + (x.preco * x.qtd), 0);
   let taxa = 0;
   let infoEntrega = "Retirada no Restaurante";
@@ -179,18 +166,21 @@ $('#pdVerResumo').addEventListener('click', () => {
     taxa = (sub >= CONFIG.entrega.gratisAcimaDe) ? 0 : zonaSelecionada.valor;
     infoEntrega = `Entrega (${zonaSelecionada.nome})`;
   } else {
-    taxa = CONFIG.entrega.levantamento;
+    taxa = CONFIG.entrega.levantamento; // Taxa de 30 MT para retirada
+    infoEntrega = "Retirada no Restaurante";
   }
 
-  const total = sub + taxa;
+  const total = sub + taxa; // Soma correta
 
+  // 2. MOSTRAR NO RESUMO DO ECRÃ
   let html = carrinho.map(item => `
     <div class="resumo-item"><span>${item.qtd}x ${item.nome}</span><b>${item.preco * item.qtd} MT</b></div>
   `).join('');
 
   html += `
     <div class="resumo-item" style="margin-top:10px; color:#666;"><span>Modo</span><b>${infoEntrega}</b></div>
-    <div class="resumo-item" style="color:#666;"><span>Taxa</span><b>${taxa} MT</b></div>
+    <div class="resumo-item" style="color:#666;"><span>Subtotal</span><b>${sub} MT</b></div>
+    <div class="resumo-item" style="color:#666;"><span>Taxa de Entrega/Serviço</span><b>${taxa} MT</b></div>
     <div class="resumo-total"><span>TOTAL</span><b>${total} MT</b></div>
   `;
 
@@ -206,9 +196,10 @@ $('#pdVerResumo').addEventListener('click', () => {
   $('#pdResumoBody').innerHTML = html;
   $('#pdModalResumo').classList.add('active');
 
-  // ENVIAR PARA O SUPABASE E WHATSAPP
+  // 3. ENVIAR PARA O SUPABASE E WHATSAPP
   $('#pdResumoEnviar').onclick = async () => {
     const btn = $('#pdResumoEnviar');
+    const textoOriginal = btn.textContent;
     btn.textContent = "A enviar...";
     btn.disabled = true;
 
@@ -228,25 +219,44 @@ $('#pdVerResumo').addEventListener('click', () => {
       status: 'PENDENTE'
     };
 
+    // TENTA GRAVAR NO SUPABASE
     if(supabaseClient) {
       const { error } = await supabaseClient.from('pedidos_frango').insert([pedido]);
-      if(error) alert("Erro ao gravar no sistema. Mas pode enviar pelo WhatsApp.");
+      if(error) {
+        // Se der erro no banco, avisa e PARA aqui (não envia WhatsApp)
+        alert("❌ Erro ao gravar no sistema:\n" + error.message + "\n\nVerifique a tabela do Supabase.");
+        btn.textContent = textoOriginal;
+        btn.disabled = false;
+        return; 
+      }
     }
 
-    let msg = `*NOVO PEDIDO - FRANGO DOURADO*\n\n`;
-    msg += `*Cliente:* ${pedido.cliente}\n*Telefone:* ${pedido.telefone}\n\n`;
-    carrinho.forEach(i => { msg += `- ${i.qtd}x ${i.nome} (${i.preco * i.qtd} MT)\n`; });
-    msg += `\n*Modo:* ${infoEntrega}\n`;
+    // SE GRAVOU BEM, GERA O WHATSAPP PROFISSIONAL
+    let msg = `*NOVO PEDIDO - FRANGO DOURADO*\n`;
+    msg += `-----------------------------------\n`;
+    msg += `👤 *Cliente:* ${pedido.cliente}\n`;
+    msg += `📱 *Telefone:* ${pedido.telefone}\n`;
+    msg += `🛵 *Modo:* ${infoEntrega}\n`;
+    
     if(modoAtual === 'entrega') {
-      msg += `*Endereço:* ${pedido.endereco}\n`;
-      msg += `*Referência:* ${pedido.referencia}\n`;
-      msg += `*Entregador:* ${pedido.entregador_nome} (${pedido.entregador_telefone})\n`;
+      msg += `📍 *Endereço:* ${pedido.endereco}\n`;
+      msg += `🏠 *Referência:* ${pedido.referencia}\n`;
+      msg += `🧑‍🦱 *Entregador:* ${pedido.entregador_nome} (${pedido.entregador_telefone})\n`;
     }
-    msg += `*TOTAL:* ${total} MT\n`;
-    if($('#pdObs').value) msg += `\n*Obs:* ${$('#pdObs').value}`;
+    
+    msg += `-----------------------------------\n`;
+    msg += `🍔 *ITENS DO PEDIDO:*\n`;
+    carrinho.forEach(i => { msg += `• ${i.qtd}x ${i.nome} — ${i.preco * i.qtd} MT\n`; });
+    msg += `-----------------------------------\n`;
+    msg += `Subtotal: ${sub} MT\n`;
+    msg += `Taxa de Serviço: ${taxa} MT\n`;
+    msg += `💰 *TOTAL A PAGAR: ${total} MT*\n`;
+    
+    if($('#pdObs').value) msg += `\n📝 *Observações:* ${$('#pdObs').value}\n`;
     
     window.open(`https://wa.me/${CONFIG.empresa.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
     
+    // Limpa e volta
     localStorage.removeItem('frango_carrinho');
     window.location.href = 'index.html';
   };
