@@ -45,7 +45,7 @@ async function carregarPedidos(){
       modo: p.modo,
       zona: p.zona,
       endereco: p.endereco,
-      entregador: p.entregador,
+      entregador: p.entregador_nome,
       taxa: p.taxa,
       total: p.total,
       status: p.status
@@ -76,10 +76,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarPedidos();
     renderPendentes();
     renderTabela();
-  }, 30000); // Atualiza a cada 30s
+  }, 30000); 
 });
 
-/* ============ LOGOUT ============ */
 $('#logoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem(SESSION_KEY);
   window.location.replace('login.html');
@@ -122,17 +121,22 @@ function renderPendentes(){
       <div class="receipt-foot">
         <div class="action-buttons">
           <button class="btn-action btn-imprimir-mini" data-imprimir="${p.id}">🖨️ Recibo</button>
+          <button class="btn-action btn-cancelar" data-cancelar="${p.id}">❌ Cancelado</button>
           <button class="btn-action btn-entregue" data-entregue="${p.id}">✅ Entregue</button>
         </div>
       </div>
     </div>
   `).join('');
 
+  // Eventos dos botões
   $$('[data-entregue]').forEach(b => b.addEventListener('click', () => {
     if(!confirm('Marcar como ENTREGUE?')) return;
     atualizarStatus(b.dataset.entregue, 'ENTREGUE');
   }));
-  
+  $$('[data-cancelar]').forEach(b => b.addEventListener('click', () => {
+    if(!confirm('Tem a certeza que quer CANCELAR este pedido?\nEle será apagado do sistema.')) return;
+    apagarPedido(b.dataset.cancelar);
+  }));
   $$('[data-imprimir]').forEach(b => b.addEventListener('click', () => imprimirRecibo(b.dataset.imprimir)));
 }
 
@@ -155,9 +159,18 @@ function renderTabela(){
   body.innerHTML = filtrados.map((p, i) => {
     const isEntregue = p.status === 'ENTREGUE';
     const badgeClass = isEntregue ? 'badge-entregue' : 'badge-pendente';
+    
+    // Adiciona o botão cancelar (❌) e imprimir (🖨️)
     const acoes = isEntregue 
-      ? `<div class="acoes-linha"><span class="txt-final">✅ Finalizado</span><button class="btn-mini btn-imprimir-mini" data-imprimir="${p.id}">🖨️</button></div>`
-      : `<div class="acoes-linha"><button class="btn-mini btn-entregue-mini" data-entregue="${p.id}">✅</button><button class="btn-mini btn-imprimir-mini" data-imprimir="${p.id}">🖨️</button></div>`;
+      ? `<div class="acoes-linha">
+          <span class="txt-final">✅ Finalizado</span>
+          <button class="btn-mini btn-imprimir-mini" data-imprimir="${p.id}">🖨️</button>
+        </div>`
+      : `<div class="acoes-linha">
+          <button class="btn-mini btn-entregue-mini" data-entregue="${p.id}">✅</button>
+          <button class="btn-mini btn-cancelar-mini" data-cancelar="${p.id}">❌</button>
+          <button class="btn-mini btn-imprimir-mini" data-imprimir="${p.id}">🖨️</button>
+        </div>`;
 
     return `
       <tr>
@@ -185,6 +198,10 @@ function renderTabela(){
     if(!confirm('Marcar como ENTREGUE?')) return;
     atualizarStatus(b.dataset.entregue, 'ENTREGUE');
   }));
+  body.querySelectorAll('[data-cancelar]').forEach(b => b.addEventListener('click', () => {
+    if(!confirm('Tem a certeza que quer CANCELAR?\nO pedido será apagado.')) return;
+    apagarPedido(b.dataset.cancelar);
+  }));
   body.querySelectorAll('[data-imprimir]').forEach(b => b.addEventListener('click', () => imprimirRecibo(b.dataset.imprimir)));
 }
 
@@ -197,7 +214,7 @@ $$('.filtro-btn').forEach(btn => {
   });
 });
 
-/* ============ ATUALIZAR STATUS ============ */
+/* ============ AÇÕES ============ */
 async function atualizarStatus(id, novoStatus){
   const pedidos = Store.get('frango_pedidos', []);
   const p = pedidos.find(x => x.id === id);
@@ -214,6 +231,30 @@ async function atualizarStatus(id, novoStatus){
       return;
     }
   }
+  renderPendentes();
+  renderTabela();
+}
+
+async function apagarPedido(id){
+  const pedidos = Store.get('frango_pedidos', []);
+  const p = pedidos.find(x => x.id === id);
+  if(!p) return;
+
+  // Apaga do Supabase
+  if(supabaseClient && p.dbId){
+    try {
+      await supabaseClient.from('pedidos_frango').delete().eq('id', p.dbId);
+    } catch(err) {
+      console.error('❌ Erro ao apagar no Supabase:', err);
+      alert('Erro ao apagar do servidor.');
+      return;
+    }
+  }
+
+  // Remove da tela e da memória
+  const restantes = pedidos.filter(x => x.id !== id);
+  Store.set('frango_pedidos', restantes);
+  
   renderPendentes();
   renderTabela();
 }
