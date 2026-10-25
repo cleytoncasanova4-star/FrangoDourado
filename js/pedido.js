@@ -9,17 +9,19 @@ const $$ = s => document.querySelectorAll(s);
 const fmtMT = v => `${Number(v||0)} MT`;
 
 let carrinho = Store.get('frango_carrinho', []);
-let timerFecharCarrinho = null; // Variável para controlar o tempo
+let timerFecharCarrinho = null;
 
+// ============================================================
 // RENDERIZAR O MENU
 // ============================================================
-function renderMenu(){
+  function renderMenu(){
   const produtos = getProdutos();
 
   const renderGrid = cat => produtos.filter(p => p.cat === cat).map(p => {
+    // Código limpo, sem tags soltas no ecrã
     const imgHTML = p.img 
-      ? `<img src="${p.img}" style="width:100%;height:140px;object-fit:cover;border-radius:12px;margin-bottom:10px;" onerror="this.outerHTML='<div style=\\'font-size:50px;margin-bottom:10px;text-align:center;background:#f0f0f0;border-radius:12px;height:140px;display:flex;align-items:center;justify-content:center\\'>${p.icon}</div>'">` 
-      : `<div style="font-size:50px;margin-bottom:10px;text-align:center;background:#f0f0f0;border-radius:12px;height:140px;display:flex;align-items:center;justify-content:center">${p.icon}</div>`;
+      ? `<img src="${p.img}" onclick="processarAdicao('${p.id}')" style="width:100%;height:140px;object-fit:cover;border-radius:12px;margin-bottom:10px;cursor:pointer;">` 
+      : `<div onclick="processarAdicao('${p.id}')" style="font-size:50px;margin-bottom:10px;text-align:center;background:#f0f0f0;border-radius:12px;height:140px;display:flex;align-items:center;justify-content:center;cursor:pointer;">${p.icon}</div>`;
 
     return `
     <div class="pd-menu-item" data-id="${p.id}">
@@ -38,18 +40,35 @@ function renderMenu(){
   if($('#pdCatAcompanhamentos')) $('#pdCatAcompanhamentos').innerHTML = renderGrid('acompanhamentos');
   if($('#pdCatRefrigerantes'))   $('#pdCatRefrigerantes').innerHTML = renderGrid('refrigerantes');
 
-  // Evento de clicar no botão +
+  // Evento do botão ADICIONAR
   $$('[data-add]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
-      adicionarAoCarrinho(btn.dataset.add);
-      
-      // 🚀 ABRE O MINI CARRINHO AUTOMATICAMENTE
-      abrirCarrinhoAuto();
+      processarAdicao(btn.dataset.add);
     });
   });
 }
 
+// ============================================================
+// A FUNÇÃO MESTRA (Verifica se abre ou não o carrinho)
+// ============================================================
+function processarAdicao(id) {
+  // 1. Verifica quantos itens existiam ANTES de adicionar
+  const qtdAnterior = carrinho.reduce((s, x) => s + x.qtd, 0);
+  
+  // 2. Adiciona o item de facto
+  adicionarAoCarrinho(id);
+  
+  // 3. Se o carrinho estava VAZIO (0 itens), abre a gaveta automaticamente
+  if(qtdAnterior === 0) {
+    abrirCarrinhoAuto();
+  }
+  // Se já tinha itens, NÃO ABRE NADA. Só a animação do número (que já está no adicionarAoCarrinho) acontece.
+}
+
+// ============================================================
+// LÓGICA BASE DO CARRINHO
+// ============================================================
 function adicionarAoCarrinho(id){
   const p = getProdutos().find(x => x.id === id);
   if(!p) return;
@@ -62,27 +81,7 @@ function adicionarAoCarrinho(id){
   }
   
   atualizarCarrinho();
-  animarBadgeCarrinho(); // ⭐ CHAMA A ANIMAÇÃO AQUI
-}
-
-// ⭐ FUNÇÃO NOVA DE ANIMAÇÃO
-function animarBadgeCarrinho(){
-  const badge = $('#pdCartBadge');
-  if(!badge) return;
-  
-  // Remove a classe se já estiver a animar (para reiniciar)
-  badge.classList.remove('animate');
-  
-  // Força o navegador a "ver" a remoção antes de adicionar de novo
-  void badge.offsetWidth; 
-  
-  // Adiciona a classe de animação
-  badge.classList.add('animate');
-  
-  // Remove a classe após a animação terminar (400ms)
-  setTimeout(() => {
-    badge.classList.remove('animate');
-  }, 2400);
+  animarBadgeCarrinho(); // Dá o pulo dourado no número
 }
 
 function alterarQtd(id, delta){
@@ -130,49 +129,45 @@ function atualizarCarrinho(){
   if(btnCheckout) btnCheckout.disabled = carrinho.length === 0;
 }
 
+function animarBadgeCarrinho(){
+  const badge = $('#pdCartBadge');
+  if(!badge) return;
+  badge.classList.remove('animate');
+  void badge.offsetWidth; 
+  badge.classList.add('animate');
+  setTimeout(() => { badge.classList.remove('animate'); }, 1000);
+}
+
 // ============================================================
 // CONTROLO DE ABRIR E FECHAR O CARRINHO
 // ============================================================
-
-// Abre e fecha automaticamente após 1 segundo (usado ao clicar em Adicionar)
 function abrirCarrinhoAuto(){
   const drawer = $('#pdCartDrawer');
   const overlay = $('#pdCartOverlay');
-  
   if(drawer && overlay){
     drawer.classList.add('open');
     overlay.classList.add('active');
-    
-    // Cancela qualquer timer anterior para não haver conflito
     clearTimeout(timerFecharCarrinho);
-    
-    // Fecha após 1 segundo (1000 milissegundos)
     timerFecharCarrinho = setTimeout(() => {
       drawer.classList.remove('open');
       overlay.classList.remove('active');
-    }, 1000);
+    }, 1500); 
   }
 }
 
-// Abre manualmente e mantém aberto (usado ao clicar no ícone do carrinho)
 function abrirCarrinhoManual(){
   const drawer = $('#pdCartDrawer');
   const overlay = $('#pdCartOverlay');
-  
   if(drawer && overlay){
-    // Cancela o fecho automático se estiver ativo
     clearTimeout(timerFecharCarrinho);
-    
     drawer.classList.add('open');
     overlay.classList.add('active');
   }
 }
 
-// Fecha o carrinho (botão X ou clicar fora)
 function fecharCarrinho(){
   const drawer = $('#pdCartDrawer');
   const overlay = $('#pdCartOverlay');
-  
   if(drawer && overlay){
     clearTimeout(timerFecharCarrinho);
     drawer.classList.remove('open');
@@ -180,21 +175,37 @@ function fecharCarrinho(){
   }
 }
 
-// Eventos de botões
 if($('#pdCartBtn')) $('#pdCartBtn').addEventListener('click', abrirCarrinhoManual);
 if($('#pdCartClose')) $('#pdCartClose').addEventListener('click', fecharCarrinho);
 if($('#pdCartOverlay')) $('#pdCartOverlay').addEventListener('click', fecharCarrinho);
 
 if($('#pdCartCheckout')) {
   $('#pdCartCheckout').addEventListener('click', () => {
-    if(carrinho.length > 0){
-      window.location.href = 'checkout.html';
-    }
+    if(carrinho.length > 0) window.location.href = 'checkout.html';
   });
 }
 
-// INIT
+// ============================================================
+// INIT (Vindo do Index)
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   renderMenu();
   atualizarCarrinho();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const produtoAdd = urlParams.get('add');
+
+  if(produtoAdd) {
+    // No caso de vir do Index, a gaveta abre porque a função processarAdicao vai entender que o carrinho estava a 0
+    processarAdicao(produtoAdd);
+    
+    // E garantimos que se fecha após 3 segundos (para ele começar a ver o menu)
+    clearTimeout(timerFecharCarrinho);
+    timerFecharCarrinho = setTimeout(() => {
+      $('#pdCartDrawer').classList.remove('open');
+      $('#pdCartOverlay').classList.remove('active');
+    }, 3000);
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
 });

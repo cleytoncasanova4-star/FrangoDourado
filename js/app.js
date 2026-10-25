@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('menuDestaque');
   
-  // ⚠️ AQUI ESTÁ A MÁGICA: Filtra a lista para não mostrar refrigerantes
+  // Filtra para não mostrar refrigerantes no index
   const produtosDestaque = PRODUTOS_PADRAO.filter(prod => prod.cat !== 'refrigerantes');
 
   grid.innerHTML = produtosDestaque.map(prod => {
@@ -17,14 +17,15 @@ document.addEventListener('DOMContentLoaded', () => {
           <p>${prod.desc}</p>
           <div class="menu-card-footer">
             <span class="menu-card-price">${prod.preco} MT</span>
-            <button class="menu-card-btn" onclick="window.location.href='pedido.html'">Pedir</button>
+            <!-- ⭐ AQUI ESTÁ A MÁGICA: Envia o ID do produto para a página de pedidos -->
+            <button class="menu-card-btn" onclick="window.location.href='pedido.html?add=${prod.id}'">Pedir</button>
           </div>
         </div>
       </div>
     `;
   }).join('');
 
-  // Lógica do Lightbox (Zoom)
+  // Lógica do Lightbox (Zoom da foto)
   const imagens = document.querySelectorAll('.menu-card-img');
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightboxImg');

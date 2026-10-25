@@ -46,20 +46,32 @@ body { background: var(--fundo-site); color: var(--cor-texto); padding-bottom: 5
   gap: 20px; 
 }
 
-/* CARTÃO DO PRODUTO */
-.pd-menu-item { 
-  background: var(--fundo-card); 
-  border-radius: var(--radius-card); 
-  padding: 15px; 
-  box-shadow: var(--sombra-card); 
-  border: 1px solid rgba(255, 184, 0, 0.1); 
-  display: flex; flex-direction: column; 
-  transition: 0.3s;
+/* O cartão inteiro do produto */
+.pd-menu-item {
+  background: var(--fundo-card);
+  border-radius: var(--radius-card);
+  padding: 15px;
+  box-shadow: var(--sombra-card);
+  border: 1px solid rgba(255, 184, 0, 0.1);
+  display: flex; flex-direction: column;
+  /* ⭐ ADICIONA ESTA LINHA AQUI: */
+  transition: transform 0.1s ease; 
 }
-.pd-menu-item:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(255, 184, 0, 0.15); }
 
-/* A imagem no topo do cartão */
-.pd-menu-item img { width: 100%; height: 160px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; background: #f0f0f0; }
+/* O efeito de clique no cartão inteiro */
+.pd-menu-item:active {
+  transform: scale(0.96); /* Encolhe 4% */
+}
+
+/* ⭐ O EFEITO DE CLIQUE DIRETO NA IMAGEM */
+.pd-menu-item img {
+  transition: transform 0.1s ease;
+}
+
+.pd-menu-item img:active {
+  transform: scale(0.92); /* A imagem encolhe um pouco mais para dar aquele efeito do clique */
+  filter: brightness(0.9); /* Dá uma leve escurecida, como se a luz baixasse */
+}
 
 .pd-mi-info { text-align: center; flex-grow: 1; display: flex; flex-direction: column; }
 .pd-mi-info b { font-size: 18px; color: var(--cor-texto); margin-bottom: 6px; }
@@ -140,11 +152,10 @@ body { background: var(--fundo-site); color: var(--cor-texto); padding-bottom: 5
    ========================================== */
 @keyframes pulseCart {
   0% { transform: scale(1); }
-  50% { transform: scale(1.6); background: #FFB800; box-shadow: 0 0 15px rgba(255, 184, 0, 0.8); }
+  50% { transform: scale(1.25); background: #FFD54F; box-shadow: 0 0 8px rgba(255, 213, 79, 0.5); } /* ⭐ Encolhi o pulo e suavizei o dourado */
   100% { transform: scale(1); }
 }
 
-/* Classe que será adicionada via JS */
 .pd-cart-badge.animate {
-  animation: pulseCart 2.4s ease-in-out;
+  animation: pulseCart 1.5s ease-in-out;
 }
